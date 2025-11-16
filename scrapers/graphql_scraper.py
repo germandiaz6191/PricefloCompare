@@ -1,0 +1,99 @@
+import requests
+import json
+
+def scrape_graphql(sitio_config, product_name):
+    # Construir payload reemplazando {product_name}
+    payload = sitio_config.get("params", {})
+    payload_str = json.dumps(payload).replace("{product_name}", product_name)
+    payload_json = json.loads(payload_str)
+
+    url = sitio_config["url"]
+    headers = {"Content-Type": "application/json", "User-Agent": "Mozilla/5.0"}
+
+    try:
+        if sitio_config.get("requires_url_variables", False):
+            # === Caso GET con variables en la URL (ej: Éxito) ===
+            from urllib.parse import urlencode
+
+            operation_name = payload_json.get("operationName")
+            variables = payload_json.get("variables", {})
+
+            query_params = {
+                "operationName": operation_name,
+                "variables": json.dumps(variables, separators=(",", ":"))
+            }
+            url = f"{url}?{urlencode(query_params)}"
+
+            resp = requests.get(url, headers=headers, timeout=10)
+
+        else:
+            # === Caso estándar: POST con body JSON ===
+            resp = requests.post(url, json=payload_json, headers=headers, timeout=10)
+        
+        resp.raise_for_status()
+    except requests.RequestException as e:
+        print(f"❌ Error de conexión con {sitio_config['sitio']}: {e}")
+        print("=== Detalles de la petición fallida ===")
+        print("URL:", url)
+        print("Headers:", headers)
+        print("Payload JSON:", json.dumps(payload_json, indent=2, ensure_ascii=False))
+        print("=======================================")
+        return None
+
+    data = resp.json()
+
+    # Extraer título y precio usando rutas dentro del JSON
+    title_path = sitio_config.get("title_xpath")
+    price_path = sitio_config.get("price_xpath")
+
+    title = extract_from_json(data, title_path) if title_path else None
+    price = extract_from_json(data, price_path) if price_path else None
+
+    return {
+        "sitio": sitio_config["sitio"],
+        "busqueda": product_name,
+        "url": url,
+        "title_path": title_path,
+        "price_path": price_path,
+        "title": title,
+        "price": price
+    }
+
+def extract_from_json(data, path):
+    """
+    Extrae un valor de un diccionario JSON usando una ruta tipo 'a.b[0].c'
+    e imprime en qué parte falla si no encuentra algo.
+    """
+    try:
+        keys = path.split(".")
+        current = data
+        for key in keys:
+            # Si el key es un índice de lista (ej: items[0])
+            if "[" in key and "]" in key:
+                key_name = key.split("[")[0]
+                index = int(key.split("[")[1].replace("]", ""))
+                
+                if key_name not in current:
+                    print(f"[DEBUG] No se encontró clave '{key_name}' en la ruta: {path}")
+                    return None
+                if not isinstance(current[key_name], list):
+                    print(f"[DEBUG] '{key_name}' no es una lista en la ruta: {path}")
+                    return None
+                if index >= len(current[key_name]):
+                    print(f"[DEBUG] Índice {index} fuera de rango para '{key_name}' en la ruta: {path}")
+                    return None
+                
+                current = current[key_name][index]
+            
+            # Si es clave normal
+            else:
+                if key not in current:
+                    print(f"[DEBUG] No se encontró clave '{key}' en la ruta: {path}")
+                    return None
+                current = current[key]
+        
+        return current
+
+    except Exception as e:
+        print(f"[DEBUG] Error al extraer ruta '{path}': {e}")
+        return None

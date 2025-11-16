@@ -1,0 +1,38 @@
+[
+  {
+    "sitio": "Éxito",
+    "url": "https://www.exito.com/api/graphql",
+    "fetch_method": "graphql",
+    "requires_url_variables": true,
+    "params": {
+      "operationName": "SearchQuery",
+      "variables":{
+                    "first":16,
+                    "after":"0",
+                    "sort":"price_asc",
+                    "term":"{product_name}",
+                    "selectedFacets":[
+                                      {"key":"category-2",
+                                      "value":"celulares"},
+                                      {"key":"channel",
+                                      "value":"{\"salesChannel\":\"1\",\"regionId\":\"\"}"},
+                                      {"key":"locale","value":"es-CO"}
+                                      ]
+                    }
+    },
+    "title_xpath": "data.search.products.edges[0].node.items[0].name",
+    "price_xpath": "data.search.products.edges[0].node.items[0].sellers[1].commertialOffer.PriceWithoutDiscount"
+  },
+  {
+    "sitio": "Homecenter",
+    "url": "https://www.homecenter.com.co/homecenter-co/search",
+    "fetch_method": "html",
+    "params": {
+      "Ntt": "{product_name}",
+      "currentpage": "1",
+      "sortBy": "derived.price.event.search.10,asc"
+    },
+    "title_xpath": "//*[@id='title-pdp-link']/h2",
+    "price_xpath": "//*[@id='__next']/div[2]/div[1]/div[4]/div[3]/div[1]/div[1]/div[3]/div[1]/div/div[6]/div/div[4]/div/div"
+  }
+]

@@ -1,0 +1,14 @@
+[
+  {
+    "nombre": "Lavadora LG 17Kg",
+    "frecuente": true,
+    "sitios": ["Éxito", "Homecenter"],
+    "ultima_actualizacion": "2025-08-10T15:00:00"
+  },
+  {
+    "nombre": "Nevera Samsung 300L",
+    "frecuente": false,
+    "sitios": ["Éxito", "Homecenter"],
+    "ultima_actualizacion": "2025-08-05T09:30:00"
+  }
+]

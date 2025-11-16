@@ -1,0 +1,30 @@
+[
+  {
+    "nombre": "iPhone 14",
+    "precios": [
+      {
+        "sitio": "Éxito",
+        "url": "https://www.exito.com/iphone-14",
+        "precio": 4500000,
+        "fecha_actualizacion": "2025-08-12T10:00:00"
+      },
+      {
+        "sitio": "Falabella",
+        "url": "https://www.falabella.com.co/iphone-14",
+        "precio": 4479990,
+        "fecha_actualizacion": "2025-08-12T09:55:00"
+      }
+    ]
+  },
+  {
+    "nombre": "Samsung Galaxy S22",
+    "precios": [
+      {
+        "sitio": "Éxito",
+        "url": "https://www.exito.com/samsung-galaxy-s22",
+        "precio": 3200000,
+        "fecha_actualizacion": "2025-08-12T09:50:00"
+      }
+    ]
+  }
+]
