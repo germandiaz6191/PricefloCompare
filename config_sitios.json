@@ -12,8 +12,6 @@
                     "sort":"price_asc",
                     "term":"{product_name}",
                     "selectedFacets":[
-                                      {"key":"category-2",
-                                      "value":"celulares"},
                                       {"key":"channel",
                                       "value":"{\"salesChannel\":\"1\",\"regionId\":\"\"}"},
                                       {"key":"locale","value":"es-CO"}

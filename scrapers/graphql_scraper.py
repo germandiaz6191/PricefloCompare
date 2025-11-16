@@ -1,5 +1,6 @@
 import requests
 import json
+from scrapers.text_utils import calculate_relevance_score, format_price
 
 def scrape_graphql(sitio_config, product_name):
     # Construir payload reemplazando {product_name}
@@ -8,7 +9,21 @@ def scrape_graphql(sitio_config, product_name):
     payload_json = json.loads(payload_str)
 
     url = sitio_config["url"]
-    headers = {"Content-Type": "application/json", "User-Agent": "Mozilla/5.0"}
+
+    # Headers más completos para evitar detección de bot
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "application/json, text/plain, */*",
+        "Accept-Language": "es-CO,es;q=0.9,en;q=0.8",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Content-Type": "application/json",
+        "Origin": "https://www.exito.com",
+        "Referer": "https://www.exito.com/",
+        "Connection": "keep-alive",
+        "Sec-Fetch-Dest": "empty",
+        "Sec-Fetch-Mode": "cors",
+        "Sec-Fetch-Site": "same-origin"
+    }
 
     try:
         if sitio_config.get("requires_url_variables", False):
@@ -49,15 +64,34 @@ def scrape_graphql(sitio_config, product_name):
     title = extract_from_json(data, title_path) if title_path else None
     price = extract_from_json(data, price_path) if price_path else None
 
-    return {
-        "sitio": sitio_config["sitio"],
-        "busqueda": product_name,
-        "url": url,
-        "title_path": title_path,
-        "price_path": price_path,
-        "title": title,
-        "price": price
-    }
+    # Validar relevancia del título
+    if title:
+        print(f"[{sitio_config['sitio']}] Primer título encontrado: '{title}'")
+
+        # Calcular score de relevancia
+        score, is_relevant = calculate_relevance_score(product_name, title)
+        print(f"[{sitio_config['sitio']}] Score de relevancia: {score}/100")
+
+        if not is_relevant:
+            print(f"[{sitio_config['sitio']}] Primer resultado no es relevante (score < 60)")
+            return None
+
+        # Formatear precio
+        if price:
+            price = format_price(str(price))
+
+        return {
+            "sitio": sitio_config["sitio"],
+            "busqueda": product_name,
+            "url": url,
+            "title_path": title_path,
+            "price_path": price_path,
+            "title": title,
+            "price": price
+        }
+
+    print(f"[{sitio_config['sitio']}] No se encontró título en el resultado")
+    return None
 
 def extract_from_json(data, path):
     """
