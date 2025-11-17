@@ -103,41 +103,57 @@ def scrape_graphql(sitio_config, product_name, product_category=None):
         print("- Verifica si el sitio ha cambiado su API")
         return None
 
-    # Extraer título y precio usando rutas dentro del JSON
-    title_path = sitio_config.get("title_xpath")
-    price_path = sitio_config.get("price_xpath")
+    # Buscar en múltiples resultados (hasta 10) para encontrar el más relevante
+    best_result = None
+    best_score = 0
 
-    title = extract_from_json(data, title_path) if title_path else None
-    price = extract_from_json(data, price_path) if price_path else None
+    # Intentar extraer múltiples productos de la respuesta
+    max_results = 10
+    for index in range(max_results):
+        # Reemplazar [0] con [index] en los paths
+        title_path = sitio_config.get("title_xpath")
+        price_path = sitio_config.get("price_xpath")
 
-    # Validar relevancia del título
-    if title:
-        print(f"[{sitio_config['sitio']}] Primer título encontrado: '{title}'")
+        if not title_path:
+            break
+
+        # Reemplazar el índice en el path (ej: edges[0] -> edges[1])
+        import re
+        title_path_indexed = re.sub(r'\[0\]', f'[{index}]', title_path, count=1)
+        price_path_indexed = re.sub(r'\[0\]', f'[{index}]', price_path, count=1) if price_path else None
+
+        title = extract_from_json(data, title_path_indexed)
+
+        if not title:
+            # No hay más resultados
+            break
 
         # Calcular score de relevancia
         score, is_relevant = calculate_relevance_score(product_name, title)
-        print(f"[{sitio_config['sitio']}] Score de relevancia: {score}/100")
 
-        if not is_relevant:
-            print(f"[{sitio_config['sitio']}] Primer resultado no es relevante (score < 60)")
-            return None
+        print(f"[{sitio_config['sitio']}] Resultado {index}: '{title}' - Score: {score}/100")
 
-        # Formatear precio
-        if price:
-            price = format_price(str(price))
+        # Guardar el mejor resultado encontrado
+        if is_relevant and score > best_score:
+            price = extract_from_json(data, price_path_indexed) if price_path_indexed else None
+            best_result = {
+                "sitio": sitio_config["sitio"],
+                "busqueda": product_name,
+                "url": url,
+                "title_path": title_path_indexed,
+                "price_path": price_path_indexed,
+                "title": title,
+                "price": format_price(str(price)) if price else None,
+                "score": score
+            }
+            best_score = score
 
-        return {
-            "sitio": sitio_config["sitio"],
-            "busqueda": product_name,
-            "url": url,
-            "title_path": title_path,
-            "price_path": price_path,
-            "title": title,
-            "price": price
-        }
-
-    print(f"[{sitio_config['sitio']}] No se encontró título en el resultado")
-    return None
+    if best_result:
+        print(f"[{sitio_config['sitio']}] ✅ Mejor resultado: '{best_result['title']}' (score: {best_score}/100)")
+        return best_result
+    else:
+        print(f"[{sitio_config['sitio']}] ❌ No se encontró ningún resultado relevante (score >= 60)")
+        return None
 
 def extract_from_json(data, path):
     """
