@@ -9,13 +9,21 @@ def load_sites_config(path="config_sitios.json"):
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
 
-def scrape_price(sitio_config, product_name):
+def scrape_price(sitio_config, product_name, product_category=None):
+    """
+    Scraper principal que enruta a HTML o GraphQL según configuración.
+
+    Args:
+        sitio_config: Configuración del sitio
+        product_name: Nombre del producto a buscar
+        product_category: Categoría opcional para filtrar búsqueda
+    """
     method = sitio_config.get("fetch_method", "html")
 
     if method == "html":
         return scrape_html(sitio_config, product_name)
     elif method == "graphql":
-        return scrape_graphql(sitio_config, product_name)
+        return scrape_graphql(sitio_config, product_name, product_category)
     else:
         print(f"Método de fetch desconocido para {sitio_config['sitio']}")
         return None

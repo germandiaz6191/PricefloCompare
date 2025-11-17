@@ -1,14 +1,23 @@
 [
   {
     "nombre": "Lavadora LG 17Kg",
+    "categoria": "electrodomesticos",
     "frecuente": true,
     "sitios": ["Éxito", "Homecenter"],
     "ultima_actualizacion": "2025-08-10T15:00:00"
   },
   {
     "nombre": "Nevera Samsung 300L",
+    "categoria": "electrodomesticos",
     "frecuente": false,
     "sitios": ["Éxito", "Homecenter"],
     "ultima_actualizacion": "2025-08-05T09:30:00"
+  },
+  {
+    "nombre": "iPhone 16",
+    "categoria": "celulares",
+    "frecuente": false,
+    "sitios": ["Éxito"],
+    "ultima_actualizacion": "2025-11-17T00:00:00"
   }
 ]

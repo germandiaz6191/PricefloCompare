@@ -25,10 +25,11 @@ def batch_update():
 
     for producto in productos:
         if producto.get("frecuente", False) or should_update(producto, last_updates, producto.get("dias_actualizacion", 1)):
+            categoria = producto.get("categoria")  # Obtener categoría opcional
             for sitio_ref in producto["sitios"]:
                 sitio_cfg = next((s for s in sitios if s["sitio"] == sitio_ref["sitio"]), None)
                 if sitio_cfg:
-                    precio = scrape_price(sitio_cfg, producto["nombre"])
+                    precio = scrape_price(sitio_cfg, producto["nombre"], categoria)
                     if precio:
                         print(f"{producto['nombre']} en {sitio_cfg['sitio']}: {precio}")
                         last_updates[producto["nombre"]] = datetime.now().isoformat()
@@ -38,10 +39,17 @@ def batch_update():
     with open("last_updates.json", "w", encoding="utf-8") as f:
         json.dump(last_updates, f, indent=2, ensure_ascii=False)
 
-def on_demand(product_name):
+def on_demand(product_name, product_category=None):
+    """
+    Búsqueda on-demand de un producto.
+
+    Args:
+        product_name: Nombre del producto
+        product_category: Categoría opcional (ej: "celulares", "electrodomesticos")
+    """
     sitios = load_sites_config()
     for sitio_cfg in sitios:
-        result = scrape_price(sitio_cfg, product_name)
+        result = scrape_price(sitio_cfg, product_name, product_category)
         if result is not None:
             title = result.get("title") or "Título no disponible"
             price = result.get("price") or "Precio no disponible"
@@ -55,4 +63,8 @@ if __name__ == "__main__":
         batch_update()
     else:
         nombre = input("Ingrese nombre de producto: ").strip()
-        on_demand(nombre)
+        print("Categorías disponibles: celulares, electrodomesticos, hogar, deportes, etc.")
+        print("(Usar categoría mejora precisión al filtrar accesorios y productos relacionados)")
+        categoria = input("Ingrese categoría (opcional, presione Enter para omitir): ").strip()
+        categoria = categoria if categoria else None
+        on_demand(nombre, categoria)

@@ -12,6 +12,8 @@
                     "sort":"price_asc",
                     "term":"{product_name}",
                     "selectedFacets":[
+                                      {"key":"category-2",
+                                      "value":"{product_category}"},
                                       {"key":"channel",
                                       "value":"{\"salesChannel\":\"1\",\"regionId\":\"\"}"},
                                       {"key":"locale","value":"es-CO"}

@@ -2,10 +2,34 @@ import requests
 import json
 from scrapers.text_utils import calculate_relevance_score, format_price
 
-def scrape_graphql(sitio_config, product_name):
-    # Construir payload reemplazando {product_name}
+def scrape_graphql(sitio_config, product_name, product_category=None):
+    """
+    Scraper para APIs GraphQL.
+
+    Args:
+        sitio_config: Configuración del sitio
+        product_name: Nombre del producto a buscar
+        product_category: Categoría opcional para filtrar (ej: "celulares", "electrodomesticos")
+    """
+    # Construir payload reemplazando {product_name} y {product_category}
     payload = sitio_config.get("params", {})
-    payload_str = json.dumps(payload).replace("{product_name}", product_name)
+    payload_str = json.dumps(payload)
+    payload_str = payload_str.replace("{product_name}", product_name)
+
+    # Si hay categoría, reemplazar; si no, eliminar el facet de categoría
+    if product_category:
+        payload_str = payload_str.replace("{product_category}", product_category)
+    else:
+        # Parsear JSON para eliminar el facet de categoría
+        temp_payload = json.loads(payload_str)
+        if "variables" in temp_payload and "selectedFacets" in temp_payload["variables"]:
+            # Filtrar facets que contengan {product_category}
+            facets = temp_payload["variables"]["selectedFacets"]
+            temp_payload["variables"]["selectedFacets"] = [
+                f for f in facets if "{product_category}" not in json.dumps(f)
+            ]
+        payload_str = json.dumps(temp_payload)
+
     payload_json = json.loads(payload_str)
 
     url = sitio_config["url"]
