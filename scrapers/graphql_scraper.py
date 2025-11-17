@@ -11,11 +11,11 @@ def scrape_graphql(sitio_config, product_name):
     url = sitio_config["url"]
 
     # Headers más completos para evitar detección de bot
+    # Nota: Accept-Encoding se omite para que requests lo maneje automáticamente
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         "Accept": "application/json, text/plain, */*",
         "Accept-Language": "es-CO,es;q=0.9,en;q=0.8",
-        "Accept-Encoding": "gzip, deflate, br",
         "Content-Type": "application/json",
         "Origin": "https://www.exito.com",
         "Referer": "https://www.exito.com/",
