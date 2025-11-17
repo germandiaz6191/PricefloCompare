@@ -35,6 +35,7 @@ ENV/
 # Project specific
 last_updates.json
 *_resultado.html
+*_resultado.json
 
 # OS
 .DS_Store

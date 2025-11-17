@@ -55,7 +55,29 @@ def scrape_graphql(sitio_config, product_name):
         print("=======================================")
         return None
 
-    data = resp.json()
+    # Guardar respuesta para debug
+    debug_filename = f"{sitio_config['sitio']}_resultado.json"
+    try:
+        with open(debug_filename, "w", encoding="utf-8") as f:
+            f.write(resp.text)
+        print(f"[DEBUG] Respuesta guardada en: {debug_filename}")
+    except Exception:
+        pass  # Ignorar errores al guardar debug
+
+    # Intentar parsear JSON
+    try:
+        data = resp.json()
+    except json.JSONDecodeError as e:
+        print(f"❌ Error parseando respuesta JSON de {sitio_config['sitio']}: {e}")
+        print(f"[DEBUG] Content-Type recibido: {resp.headers.get('Content-Type', 'desconocido')}")
+        print(f"[DEBUG] Status code: {resp.status_code}")
+        print(f"[DEBUG] Respuesta recibida (primeros 500 chars):")
+        print(resp.text[:500])
+        print("=== Posible causa: ===")
+        print("- El sitio puede estar devolviendo HTML en lugar de JSON")
+        print("- Puede ser una página de error o desafío de Cloudflare")
+        print("- Verifica si el sitio ha cambiado su API")
+        return None
 
     # Extraer título y precio usando rutas dentro del JSON
     title_path = sitio_config.get("title_xpath")
