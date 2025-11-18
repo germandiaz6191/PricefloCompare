@@ -1,0 +1,78 @@
+version: '3.8'
+
+services:
+  # API REST
+  api:
+    build: .
+    container_name: priceflo_api
+    ports:
+      - "8000:8000"
+    volumes:
+      # Persistir base de datos y backups
+      - ./data:/app/data
+      - ./backups:/app/backups
+      - ./logs:/app/logs
+    environment:
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Job de scraping (ejecuta cada 12 horas)
+  scraper:
+    build: .
+    container_name: priceflo_scraper
+    volumes:
+      - ./data:/app/data
+      - ./backups:/app/backups
+      - ./logs:/app/logs
+    environment:
+      - PYTHONUNBUFFERED=1
+    command: >
+      sh -c "
+        echo 'Esperando 60 segundos antes del primer scrape...' &&
+        sleep 60 &&
+        while true; do
+          echo '🚀 Iniciando scraping...' &&
+          python job_scraper.py >> logs/scraper.log 2>&1 &&
+          echo '✅ Scraping completado. Próximo en 12 horas...' &&
+          sleep 43200
+        done
+      "
+    restart: unless-stopped
+    depends_on:
+      - api
+
+  # Backup automático (ejecuta cada 24 horas)
+  backup:
+    build: .
+    container_name: priceflo_backup
+    volumes:
+      - ./data:/app/data
+      - ./backups:/app/backups
+      - ./logs:/app/logs
+    environment:
+      - PYTHONUNBUFFERED=1
+    command: >
+      sh -c "
+        echo 'Esperando 2 horas antes del primer backup...' &&
+        sleep 7200 &&
+        while true; do
+          echo '💾 Iniciando backup...' &&
+          python backup_db.py >> logs/backup.log 2>&1 &&
+          echo '✅ Backup completado. Próximo en 24 horas...' &&
+          sleep 86400
+        done
+      "
+    restart: unless-stopped
+    depends_on:
+      - api
+
+volumes:
+  data:
+  backups:
+  logs:

@@ -37,6 +37,16 @@ last_updates.json
 *_resultado.html
 *_resultado.json
 
+# Database and backups
+data/
+backups/
+logs/
+*.db
+*.db-journal
+
+# Environment
+.env
+
 # OS
 .DS_Store
 Thumbs.db
