@@ -14,7 +14,7 @@ from database import (
     get_store_by_name,
     get_stats
 )
-from generic_scrapers import scrape_price
+from scrapers.generic_scrapers import scrape_price
 
 
 def scrape_and_save(product: Dict, store: Dict) -> bool:
@@ -38,7 +38,7 @@ def scrape_and_save(product: Dict, store: Dict) -> bool:
             return False
 
         # Verificar que tenemos precio
-        precio = result.get('precio')
+        precio = result.get('price')
         if not precio:
             print(f"   ⚠️  Sin precio para {product['name']} en {store['name']}")
             return False
@@ -48,7 +48,7 @@ def scrape_and_save(product: Dict, store: Dict) -> bool:
             product_id=product['id'],
             store_id=store['id'],
             price=float(precio),
-            title=result.get('titulo', product['name']),
+            title=result.get('title', product['name']),
             url=result.get('url'),
             relevance_score=result.get('score', 0)
         )
