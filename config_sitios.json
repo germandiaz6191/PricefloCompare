@@ -4,6 +4,7 @@
     "url": "https://www.exito.com/api/graphql",
     "fetch_method": "graphql",
     "requires_url_variables": true,
+    "base_product_url": "https://www.exito.com",
     "params": {
       "operationName": "SearchQuery",
       "variables":{
@@ -21,18 +22,21 @@
                     }
     },
     "title_xpath": "data.search.products.edges[0].node.items[0].name",
-    "price_xpath": "data.search.products.edges[0].node.items[0].sellers[1].commertialOffer.PriceWithoutDiscount"
+    "price_xpath": "data.search.products.edges[0].node.items[0].sellers[1].commertialOffer.PriceWithoutDiscount",
+    "url_xpath": "data.search.products.edges[0].node.linkText"
   },
   {
     "sitio": "Homecenter",
     "url": "https://www.homecenter.com.co/homecenter-co/search",
     "fetch_method": "html",
+    "base_product_url": "https://www.homecenter.com.co",
     "params": {
       "Ntt": "{product_name}",
       "currentpage": "1",
       "sortBy": "derived.price.event.search.10,asc"
     },
     "title_xpath": "//*[@id='title-pdp-link']/h2",
-    "price_xpath": "//*[@id='__next']/div[2]/div[1]/div[4]/div[3]/div[1]/div[1]/div[3]/div[1]/div/div[6]/div/div[4]/div/div"
+    "price_xpath": "//*[@id='__next']/div[2]/div[1]/div[4]/div[3]/div[1]/div[1]/div[3]/div[1]/div/div[6]/div/div[4]/div/div",
+    "url_xpath": "//*[@id='title-pdp-link']/@href"
   }
 ]

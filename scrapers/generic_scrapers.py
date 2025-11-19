@@ -96,11 +96,31 @@ def scrape_html(sitio_config, product_name):
             price_text = price_elements[0].text_content().strip()
             price_text = format_price(price_text)
 
+    # Extraer URL del producto
+    product_url = None
+    url_xpath = sitio_config.get("url_xpath")
+    if url_xpath:
+        url_elements = tree.xpath(url_xpath)
+        if url_elements:
+            # Si es un atributo (/@href), xpath devuelve string directamente
+            if isinstance(url_elements[0], str):
+                product_url = url_elements[0]
+            else:
+                # Si es un elemento, obtener su text_content
+                product_url = url_elements[0].text_content().strip()
+
+            # Construir URL completa si es relativa
+            if product_url and not product_url.startswith('http'):
+                base_url = sitio_config.get("base_product_url", "")
+                product_url = base_url + product_url
+
+            print(f"[{sitio_config['sitio']}] URL del producto: {product_url}")
+
     if title_text:
         return {
             "sitio": sitio_config["sitio"],
             "busqueda": product_name,
-            "url": url,
+            "url": product_url or url,  # Usar URL del producto si existe, sino la de búsqueda
             "title_xpath": title_xpath,
             "price_xpath": price_xpath,
             "title": title_text,

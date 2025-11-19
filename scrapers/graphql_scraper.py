@@ -136,10 +136,26 @@ def scrape_graphql(sitio_config, product_name, product_category=None):
         # Guardar el mejor resultado encontrado
         if is_relevant and score > best_score:
             price = extract_from_json(data, price_path_indexed) if price_path_indexed else None
+
+            # Extraer URL del producto si está configurada
+            product_url = url  # Por defecto, URL de búsqueda
+            url_path = sitio_config.get("url_xpath")
+            if url_path:
+                url_path_indexed = re.sub(r'\[0\]', f'[{index}]', url_path, count=1)
+                link_text = extract_from_json(data, url_path_indexed)
+                if link_text:
+                    # Construir URL completa
+                    base_url = sitio_config.get("base_product_url", "")
+                    if link_text.startswith('http'):
+                        product_url = link_text
+                    else:
+                        product_url = f"{base_url}/{link_text}" if not link_text.startswith('/') else f"{base_url}{link_text}"
+                    print(f"[{sitio_config['sitio']}] URL del producto: {product_url}")
+
             best_result = {
                 "sitio": sitio_config["sitio"],
                 "busqueda": product_name,
-                "url": url,
+                "url": product_url,
                 "title_path": title_path_indexed,
                 "price_path": price_path_indexed,
                 "title": title,
