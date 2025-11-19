@@ -749,6 +749,22 @@ body {
     font-size: 0.875rem;
 }
 
+.affiliate-disclosure {
+    background: var(--gray-50);
+    border: 1px solid var(--gray-200);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-bottom: 20px;
+    color: var(--gray-700);
+    font-size: 0.8125rem;
+    line-height: 1.6;
+}
+
+.affiliate-disclosure strong {
+    color: var(--primary);
+    font-weight: 600;
+}
+
 /* ===== RESPONSIVE ===== */
 @media (max-width: 1024px) {
     .products-grid {

@@ -156,8 +156,17 @@ async function createProductCard(product) {
                 const savingsPercent = ((savings / maxPrice) * 100).toFixed(0);
 
                 // Botón para ver en tienda (si hay URL)
-                const visitButton = price.url ? `
-                    <a href="${price.url}" target="_blank" rel="noopener noreferrer" class="btn-visit-store">
+                // Usar getAffiliateUrl para agregar código de afiliado si está configurado
+                const affiliateUrl = getAffiliateUrl(price.store_name, price.url);
+                const isAffiliate = hasAffiliateEnabled(price.store_name);
+                const relAttr = isAffiliate ? 'noopener noreferrer sponsored' : 'noopener noreferrer';
+
+                const visitButton = affiliateUrl ? `
+                    <a href="${affiliateUrl}"
+                       target="_blank"
+                       rel="${relAttr}"
+                       class="btn-visit-store"
+                       onclick="trackClick('${price.store_name}', ${product.id})">
                         Ver en tienda
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
@@ -324,6 +333,30 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
+// Tracking de clics en botones "Ver en tienda"
+async function trackClick(storeName, productId) {
+    try {
+        // Registrar el clic en el backend para estadísticas
+        await fetch(`${API_URL}/track/click`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                store_name: storeName,
+                product_id: productId,
+                timestamp: new Date().toISOString()
+            })
+        });
+
+        // Log para debugging
+        console.log(`📊 Click tracked: ${storeName} - Product ${productId}`);
+    } catch (error) {
+        // No bloquear la navegación si falla el tracking
+        console.error('Error tracking click:', error);
+    }
+}
 
 // Auto-refresh cada 5 minutos
 setInterval(() => {
