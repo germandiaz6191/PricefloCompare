@@ -3,10 +3,12 @@ const API_URL = 'http://localhost:8000';
 
 // Estado de la aplicación
 let allProducts = [];
+let currentProducts = [];
 let selectedCategory = null;
 
 // Inicializar la aplicación
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('🚀 PricefloCompare iniciado');
     loadStats();
     loadCategories();
     loadProducts();
@@ -24,6 +26,22 @@ async function loadStats() {
 
         if (stats.last_scrape) {
             const date = new Date(stats.last_scrape);
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / 60000);
+
+            let timeText;
+            if (diffMins < 1) {
+                timeText = 'hace momentos';
+            } else if (diffMins < 60) {
+                timeText = `hace ${diffMins} min`;
+            } else if (diffMins < 1440) {
+                timeText = `hace ${Math.floor(diffMins / 60)} horas`;
+            } else {
+                timeText = `hace ${Math.floor(diffMins / 1440)} días`;
+            }
+
+            document.getElementById('updateBadge').textContent = `Actualizado ${timeText}`;
             document.getElementById('lastUpdate').textContent = date.toLocaleString('es-CO');
         }
     } catch (error) {
@@ -68,15 +86,19 @@ async function loadProducts(category = null) {
 
         const response = await fetch(url);
         allProducts = await response.json();
+        currentProducts = [...allProducts];
 
-        await displayProducts(allProducts);
+        await displayProducts(currentProducts);
     } catch (error) {
         console.error('Error cargando productos:', error);
         document.getElementById('productsGrid').innerHTML = `
             <div class="error">
-                <h3>Error al cargar productos</h3>
+                <h3>⚠️ Error al cargar productos</h3>
                 <p>${error.message}</p>
-                <p>Asegúrate de que la API esté corriendo en ${API_URL}</p>
+                <p>Asegúrate de que la API esté corriendo en <code>${API_URL}</code></p>
+                <button onclick="location.reload()" class="btn-history" style="margin-top: 20px;">
+                    🔄 Reintentar
+                </button>
             </div>
         `;
     } finally {
@@ -91,8 +113,9 @@ async function displayProducts(products) {
     if (products.length === 0) {
         grid.innerHTML = `
             <div class="no-results">
-                <h3>No hay productos</h3>
-                <p>Ejecuta <code>python scrape_and_save.py</code> para llenar la base de datos</p>
+                <h3>📦 No hay productos</h3>
+                <p>Ejecuta <code>python add_test_data.py</code> para agregar datos de prueba</p>
+                <p>O ejecuta <code>python scrape_and_save.py</code> para scraping real</p>
             </div>
         `;
         return;
@@ -127,10 +150,16 @@ async function createProductCard(product) {
                 const isBest = index === 0;
                 const date = new Date(price.scraped_at);
 
+                // Calcular ahorro vs el más caro
+                const maxPrice = Math.max(...prices.map(p => p.price));
+                const savings = maxPrice - price.price;
+                const savingsPercent = ((savings / maxPrice) * 100).toFixed(0);
+
                 return `
                     <div class="price-item ${isBest ? 'best-price' : ''} ${isStale ? 'stale' : ''}">
                         <div class="store-name">
-                            ${isBest ? '🏆 ' : ''}${price.store_name}
+                            ${price.store_name}
+                            ${isBest && savings > 0 ? `<br><small style="color: #059669; font-weight: 600;">Ahorro: ${savingsPercent}%</small>` : ''}
                         </div>
                         <div class="price">
                             $${price.price.toLocaleString('es-CO')}
@@ -142,11 +171,11 @@ async function createProductCard(product) {
                 `;
             }).join('');
         } else {
-            pricesHTML = '<p class="no-prices">Sin precios disponibles</p>';
+            pricesHTML = '<p class="no-prices">💤 Sin precios disponibles</p>';
         }
     } catch (error) {
         console.error(`Error cargando precios de ${product.name}:`, error);
-        pricesHTML = '<p class="no-prices">Error al cargar precios</p>';
+        pricesHTML = '<p class="no-prices">❌ Error al cargar precios</p>';
     }
 
     card.innerHTML = `
@@ -158,8 +187,8 @@ async function createProductCard(product) {
             ${pricesHTML}
         </div>
         <div class="product-footer">
-            <button onclick="viewHistory(${product.id})" class="btn-secondary">
-                📊 Ver histórico
+            <button onclick="viewHistory(${product.id})" class="btn-history">
+                📊 Ver histórico de precios
             </button>
         </div>
     `;
@@ -188,6 +217,7 @@ async function searchProducts() {
     try {
         const response = await fetch(`${API_URL}/search?q=${encodeURIComponent(query)}`);
         const products = await response.json();
+        currentProducts = products;
         await displayProducts(products);
     } catch (error) {
         console.error('Error buscando productos:', error);
@@ -196,9 +226,49 @@ async function searchProducts() {
     }
 }
 
+// Ordenar productos
+async function sortProducts() {
+    const sortBy = document.getElementById('sortSelect').value;
+
+    showLoading(true);
+
+    // Crear copias de los productos con sus precios
+    const productsWithPrices = await Promise.all(
+        currentProducts.map(async (product) => {
+            try {
+                const response = await fetch(`${API_URL}/products/${product.id}/prices`);
+                const prices = await response.json();
+                const minPrice = prices.length > 0 ? Math.min(...prices.map(p => p.price)) : Infinity;
+                return { ...product, minPrice };
+            } catch (error) {
+                return { ...product, minPrice: Infinity };
+            }
+        })
+    );
+
+    // Ordenar según la opción seleccionada
+    switch (sortBy) {
+        case 'price-low':
+            productsWithPrices.sort((a, b) => a.minPrice - b.minPrice);
+            break;
+        case 'price-high':
+            productsWithPrices.sort((a, b) => b.minPrice - a.minPrice);
+            break;
+        case 'name':
+        default:
+            productsWithPrices.sort((a, b) => a.name.localeCompare(b.name));
+            break;
+    }
+
+    currentProducts = productsWithPrices;
+    await displayProducts(currentProducts);
+    showLoading(false);
+}
+
 // Ver histórico de un producto
 function viewHistory(productId) {
-    window.open(`${API_URL}/products/${productId}/history`, '_blank');
+    const url = `${API_URL}/products/${productId}/history`;
+    window.open(url, '_blank');
 }
 
 // Mostrar/ocultar loading
@@ -215,5 +285,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 searchProducts();
             }
         });
+
+        // Limpiar búsqueda con Escape
+        searchInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                searchInput.value = '';
+                loadProducts(selectedCategory);
+            }
+        });
     }
 });
+
+// Auto-refresh cada 5 minutos
+setInterval(() => {
+    console.log('🔄 Auto-refresh de estadísticas');
+    loadStats();
+}, 300000); // 5 minutos

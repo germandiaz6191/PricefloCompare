@@ -3,67 +3,169 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PricefloCompare - Comparador de Precios</title>
-    <link rel="stylesheet" href="style.css">
+    <title>PricefloCompare - El Mejor Comparador de Precios</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
+    <!-- Fondo animado -->
+    <div class="background-animation">
+        <div class="circle circle-1"></div>
+        <div class="circle circle-2"></div>
+        <div class="circle circle-3"></div>
+    </div>
+
     <div class="container">
-        <!-- Header -->
-        <header>
-            <h1>💰 PricefloCompare</h1>
-            <p class="subtitle">Compara precios entre las mejores tiendas de Colombia</p>
+        <!-- Hero Header -->
+        <header class="hero">
+            <div class="hero-content">
+                <div class="logo-wrapper">
+                    <div class="logo">💰</div>
+                    <h1 class="hero-title">
+                        Pricefl<span class="highlight">o</span>Compare
+                    </h1>
+                </div>
+                <p class="hero-subtitle">
+                    Encuentra los mejores precios en las tiendas más importantes de Colombia
+                </p>
+                <div class="hero-badges">
+                    <span class="badge badge-live">
+                        <span class="pulse-dot"></span>
+                        En vivo
+                    </span>
+                    <span class="badge badge-info" id="updateBadge">
+                        Actualizado hace minutos
+                    </span>
+                </div>
+            </div>
         </header>
 
-        <!-- Search Bar -->
-        <div class="search-section">
-            <input
-                type="text"
-                id="searchInput"
-                placeholder="Buscar producto..."
-                class="search-input"
-            >
-            <button onclick="searchProducts()" class="search-btn">🔍 Buscar</button>
+        <!-- Search Section -->
+        <div class="search-section glass-card">
+            <div class="search-wrapper">
+                <svg class="search-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <path d="m21 21-4.35-4.35"></path>
+                </svg>
+                <input
+                    type="text"
+                    id="searchInput"
+                    placeholder="Busca lavadoras, celulares, electrodomésticos..."
+                    class="search-input"
+                    autocomplete="off"
+                >
+                <button onclick="searchProducts()" class="search-btn">
+                    <span>Buscar</span>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                        <polyline points="12 5 19 12 12 19"></polyline>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Stats Dashboard -->
+        <div class="stats-dashboard" id="stats">
+            <div class="stat-card glass-card">
+                <div class="stat-icon stat-icon-blue">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M20 7h-9"></path>
+                        <path d="M14 17H5"></path>
+                        <circle cx="17" cy="17" r="3"></circle>
+                        <circle cx="7" cy="7" r="3"></circle>
+                    </svg>
+                </div>
+                <div class="stat-content">
+                    <h3 id="totalProducts" class="stat-number">-</h3>
+                    <p class="stat-label">Productos</p>
+                </div>
+            </div>
+
+            <div class="stat-card glass-card">
+                <div class="stat-icon stat-icon-purple">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                    </svg>
+                </div>
+                <div class="stat-content">
+                    <h3 id="totalStores" class="stat-number">-</h3>
+                    <p class="stat-label">Tiendas</p>
+                </div>
+            </div>
+
+            <div class="stat-card glass-card">
+                <div class="stat-icon stat-icon-green">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                    </svg>
+                </div>
+                <div class="stat-content">
+                    <h3 id="totalPrices" class="stat-number">-</h3>
+                    <p class="stat-label">Comparaciones</p>
+                </div>
+            </div>
         </div>
 
         <!-- Categories -->
-        <div class="categories" id="categories">
-            <!-- Se llenan dinámicamente -->
-        </div>
-
-        <!-- Stats -->
-        <div class="stats" id="stats">
-            <div class="stat-card">
-                <h3 id="totalProducts">-</h3>
-                <p>Productos</p>
-            </div>
-            <div class="stat-card">
-                <h3 id="totalStores">-</h3>
-                <p>Tiendas</p>
-            </div>
-            <div class="stat-card">
-                <h3 id="totalPrices">-</h3>
-                <p>Comparaciones</p>
+        <div class="categories-section">
+            <h2 class="section-title">Categorías</h2>
+            <div class="categories-wrapper">
+                <div class="categories" id="categories">
+                    <!-- Se llenan dinámicamente -->
+                </div>
             </div>
         </div>
 
         <!-- Products Grid -->
-        <div class="products-grid" id="productsGrid">
-            <!-- Se llenan dinámicamente -->
+        <div class="products-section">
+            <div class="section-header">
+                <h2 class="section-title">Productos Disponibles</h2>
+                <select class="sort-select glass-card" id="sortSelect" onchange="sortProducts()">
+                    <option value="name">Nombre A-Z</option>
+                    <option value="price-low">Precio: Menor a Mayor</option>
+                    <option value="price-high">Precio: Mayor a Menor</option>
+                </select>
+            </div>
+
+            <div class="products-grid" id="productsGrid">
+                <!-- Se llenan dinámicamente -->
+            </div>
         </div>
 
         <!-- Loading -->
-        <div class="loading" id="loading" style="display: none;">
-            <div class="spinner"></div>
-            <p>Cargando...</p>
+        <div class="loading-overlay" id="loading" style="display: none;">
+            <div class="loading-content glass-card">
+                <div class="spinner-modern"></div>
+                <p class="loading-text">Cargando productos...</p>
+            </div>
         </div>
 
         <!-- Footer -->
-        <footer>
-            <p>Última actualización: <span id="lastUpdate">-</span></p>
-            <p><a href="http://localhost:8000/docs" target="_blank">📖 API Docs</a></p>
+        <footer class="footer">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>PricefloCompare</h3>
+                    <p>Comparador de precios inteligente</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Enlaces</h4>
+                    <a href="http://localhost:8000/docs" target="_blank" class="footer-link">
+                        📖 Documentación API
+                    </a>
+                </div>
+                <div class="footer-section">
+                    <h4>Última actualización</h4>
+                    <p id="lastUpdate" class="footer-date">-</p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>© 2025 PricefloCompare - Todos los derechos reservados</p>
+            </div>
         </footer>
     </div>
 
-    <script src="app.js"></script>
+    <script src="/static/app.js"></script>
 </body>
 </html>
