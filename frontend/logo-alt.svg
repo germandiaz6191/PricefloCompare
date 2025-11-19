@@ -1,0 +1,33 @@
+<!-- Logo Alternativo - Más Minimalista -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 60" class="logo-svg">
+    <defs>
+        <linearGradient id="textGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" style="stop-color:#0f172a;stop-opacity:1" />
+            <stop offset="100%" style="stop-color:#1e293b;stop-opacity:1" />
+        </linearGradient>
+    </defs>
+
+    <!-- Ícono minimalista -->
+    <g transform="translate(5, 10)">
+        <!-- Dos etiquetas superpuestas -->
+        <rect x="0" y="10" width="35" height="25" rx="4"
+              fill="#3b82f6" opacity="0.15"/>
+        <rect x="5" y="5" width="35" height="25" rx="4"
+              fill="#3b82f6" opacity="0.9"/>
+
+        <!-- P estilizada -->
+        <text x="22" y="27"
+              font-family="system-ui, -apple-system, sans-serif"
+              font-size="18"
+              font-weight="700"
+              fill="white"
+              text-anchor="middle">P</text>
+    </g>
+
+    <!-- Texto -->
+    <text x="55" y="35"
+          font-family="system-ui, -apple-system, sans-serif"
+          font-size="24"
+          font-weight="700"
+          fill="url(#textGradient)">PricefloCompare</text>
+</svg>
