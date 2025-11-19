@@ -4,9 +4,12 @@ Expone endpoints para consultar precios y productos
 """
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from typing import Optional, List
 from datetime import datetime, timedelta
 from pydantic import BaseModel
+import os
 
 from database import (
     get_products,
@@ -325,14 +328,36 @@ def search_products(
         return [dict(row) for row in products]
 
 
+# === FRONTEND ESTÁTICO ===
+
+# Montar archivos estáticos del frontend (si existe el directorio)
+frontend_path = os.path.join(os.path.dirname(__file__), "frontend")
+if os.path.exists(frontend_path):
+    app.mount("/static", StaticFiles(directory=frontend_path), name="static")
+
+    @app.get("/app")
+    async def serve_frontend():
+        """Sirve el frontend HTML"""
+        return FileResponse(os.path.join(frontend_path, "index.html"))
+
+
 # === EJECUTAR SERVIDOR ===
 
 if __name__ == "__main__":
     import uvicorn
 
+    print("=" * 70)
     print("🚀 Iniciando PricefloCompare API...")
-    print("📖 Documentación: http://localhost:8000/docs")
-    print("🔍 Health check: http://localhost:8000/health")
+    print("=" * 70)
+    print("\n📱 APLICACIÓN:")
+    print("   http://localhost:8000/app")
+    print("\n📖 DOCUMENTACIÓN API:")
+    print("   http://localhost:8000/docs")
+    print("\n🔍 ENDPOINTS:")
+    print("   http://localhost:8000/products")
+    print("   http://localhost:8000/stats")
+    print("   http://localhost:8000/health")
+    print("\n" + "=" * 70 + "\n")
 
     uvicorn.run(
         "api:app",

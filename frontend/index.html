@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PricefloCompare - Comparador de Precios</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <h1>💰 PricefloCompare</h1>
+            <p class="subtitle">Compara precios entre las mejores tiendas de Colombia</p>
+        </header>
+
+        <!-- Search Bar -->
+        <div class="search-section">
+            <input
+                type="text"
+                id="searchInput"
+                placeholder="Buscar producto..."
+                class="search-input"
+            >
+            <button onclick="searchProducts()" class="search-btn">🔍 Buscar</button>
+        </div>
+
+        <!-- Categories -->
+        <div class="categories" id="categories">
+            <!-- Se llenan dinámicamente -->
+        </div>
+
+        <!-- Stats -->
+        <div class="stats" id="stats">
+            <div class="stat-card">
+                <h3 id="totalProducts">-</h3>
+                <p>Productos</p>
+            </div>
+            <div class="stat-card">
+                <h3 id="totalStores">-</h3>
+                <p>Tiendas</p>
+            </div>
+            <div class="stat-card">
+                <h3 id="totalPrices">-</h3>
+                <p>Comparaciones</p>
+            </div>
+        </div>
+
+        <!-- Products Grid -->
+        <div class="products-grid" id="productsGrid">
+            <!-- Se llenan dinámicamente -->
+        </div>
+
+        <!-- Loading -->
+        <div class="loading" id="loading" style="display: none;">
+            <div class="spinner"></div>
+            <p>Cargando...</p>
+        </div>
+
+        <!-- Footer -->
+        <footer>
+            <p>Última actualización: <span id="lastUpdate">-</span></p>
+            <p><a href="http://localhost:8000/docs" target="_blank">📖 API Docs</a></p>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
