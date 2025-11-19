@@ -3,20 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PricefloCompare - El Mejor Comparador de Precios</title>
+    <title>PricefloCompare - Comparador Profesional de Precios</title>
     <link rel="stylesheet" href="/static/style.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
-    <!-- Fondo animado -->
-    <div class="background-animation">
-        <div class="circle circle-1"></div>
-        <div class="circle circle-2"></div>
-        <div class="circle circle-3"></div>
-    </div>
-
     <div class="container">
         <!-- Hero Header -->
         <header class="hero">
@@ -28,37 +18,37 @@
                     </h1>
                 </div>
                 <p class="hero-subtitle">
-                    Encuentra los mejores precios en las tiendas más importantes de Colombia
+                    Comparador profesional de precios para las principales tiendas de Colombia
                 </p>
                 <div class="hero-badges">
                     <span class="badge badge-live">
                         <span class="pulse-dot"></span>
-                        En vivo
+                        En tiempo real
                     </span>
                     <span class="badge badge-info" id="updateBadge">
-                        Actualizado hace minutos
+                        Actualizado recientemente
                     </span>
                 </div>
             </div>
         </header>
 
         <!-- Search Section -->
-        <div class="search-section glass-card">
+        <div class="search-section">
             <div class="search-wrapper">
-                <svg class="search-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <circle cx="11" cy="11" r="8"></circle>
                     <path d="m21 21-4.35-4.35"></path>
                 </svg>
                 <input
                     type="text"
                     id="searchInput"
-                    placeholder="Busca lavadoras, celulares, electrodomésticos..."
+                    placeholder="Buscar productos: lavadoras, celulares, electrodomésticos..."
                     class="search-input"
                     autocomplete="off"
                 >
                 <button onclick="searchProducts()" class="search-btn">
                     <span>Buscar</span>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <line x1="5" y1="12" x2="19" y2="12"></line>
                         <polyline points="12 5 19 12 12 19"></polyline>
                     </svg>
@@ -68,9 +58,9 @@
 
         <!-- Stats Dashboard -->
         <div class="stats-dashboard" id="stats">
-            <div class="stat-card glass-card">
+            <div class="stat-card">
                 <div class="stat-icon stat-icon-blue">
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                         <path d="M20 7h-9"></path>
                         <path d="M14 17H5"></path>
                         <circle cx="17" cy="17" r="3"></circle>
@@ -78,32 +68,32 @@
                     </svg>
                 </div>
                 <div class="stat-content">
-                    <h3 id="totalProducts" class="stat-number">-</h3>
-                    <p class="stat-label">Productos</p>
+                    <h3 id="totalProducts">-</h3>
+                    <p>Productos</p>
                 </div>
             </div>
 
-            <div class="stat-card glass-card">
+            <div class="stat-card">
                 <div class="stat-icon stat-icon-purple">
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                         <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
                     </svg>
                 </div>
                 <div class="stat-content">
-                    <h3 id="totalStores" class="stat-number">-</h3>
-                    <p class="stat-label">Tiendas</p>
+                    <h3 id="totalStores">-</h3>
+                    <p>Tiendas</p>
                 </div>
             </div>
 
-            <div class="stat-card glass-card">
+            <div class="stat-card">
                 <div class="stat-icon stat-icon-green">
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                         <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
                     </svg>
                 </div>
                 <div class="stat-content">
-                    <h3 id="totalPrices" class="stat-number">-</h3>
-                    <p class="stat-label">Comparaciones</p>
+                    <h3 id="totalPrices">-</h3>
+                    <p>Comparaciones</p>
                 </div>
             </div>
         </div>
@@ -111,21 +101,19 @@
         <!-- Categories -->
         <div class="categories-section">
             <h2 class="section-title">Categorías</h2>
-            <div class="categories-wrapper">
-                <div class="categories" id="categories">
-                    <!-- Se llenan dinámicamente -->
-                </div>
+            <div class="categories" id="categories">
+                <!-- Se llenan dinámicamente -->
             </div>
         </div>
 
         <!-- Products Grid -->
         <div class="products-section">
             <div class="section-header">
-                <h2 class="section-title">Productos Disponibles</h2>
-                <select class="sort-select glass-card" id="sortSelect" onchange="sortProducts()">
-                    <option value="name">Nombre A-Z</option>
-                    <option value="price-low">Precio: Menor a Mayor</option>
-                    <option value="price-high">Precio: Mayor a Menor</option>
+                <h2 class="section-title">Productos</h2>
+                <select class="sort-select" id="sortSelect" onchange="sortProducts()">
+                    <option value="name">Ordenar por nombre</option>
+                    <option value="price-low">Precio: menor a mayor</option>
+                    <option value="price-high">Precio: mayor a menor</option>
                 </select>
             </div>
 
@@ -136,7 +124,7 @@
 
         <!-- Loading -->
         <div class="loading-overlay" id="loading" style="display: none;">
-            <div class="loading-content glass-card">
+            <div class="loading-content">
                 <div class="spinner-modern"></div>
                 <p class="loading-text">Cargando productos...</p>
             </div>
@@ -147,12 +135,12 @@
             <div class="footer-content">
                 <div class="footer-section">
                     <h3>PricefloCompare</h3>
-                    <p>Comparador de precios inteligente</p>
+                    <p>Sistema profesional de comparación de precios en tiempo real</p>
                 </div>
                 <div class="footer-section">
-                    <h4>Enlaces</h4>
+                    <h4>Recursos</h4>
                     <a href="http://localhost:8000/docs" target="_blank" class="footer-link">
-                        📖 Documentación API
+                        Documentación API
                     </a>
                 </div>
                 <div class="footer-section">
@@ -161,7 +149,7 @@
                 </div>
             </div>
             <div class="footer-bottom">
-                <p>© 2025 PricefloCompare - Todos los derechos reservados</p>
+                <p>© 2025 PricefloCompare. Todos los derechos reservados.</p>
             </div>
         </footer>
     </div>
