@@ -48,6 +48,9 @@ def init_db():
             fetch_method TEXT NOT NULL,  -- 'html' o 'graphql'
             config TEXT,  -- JSON como TEXT
             active INTEGER DEFAULT 1,
+            affiliate_enabled INTEGER DEFAULT 0,  -- Si tiene afiliado configurado
+            affiliate_code TEXT,  -- Código de afiliado
+            affiliate_url_pattern TEXT,  -- Patrón de URL (ej: "?tag={code}")
             created_at TEXT DEFAULT (datetime('now'))
         );
 

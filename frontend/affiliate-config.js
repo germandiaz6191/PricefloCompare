@@ -1,13 +1,17 @@
 /**
  * Configuración de Afiliados
  *
- * INSTRUCCIONES:
- * 1. Registrate en cualquier programa de afiliados
- * 2. Cambia 'enabled: true' y agrega tu código
- * 3. No necesitas tocar nada más
+ * NOTA: Esta configuración ahora se carga desde la base de datos.
+ *
+ * Para configurar afiliados:
+ * 1. Ejecuta: python activate_amazon_affiliate.py TU_CODIGO
+ * 2. O actualiza directamente la tabla 'stores' en la BD
+ *
+ * NO necesitas editar este archivo.
  */
 
-const AFFILIATE_CONFIG = {
+// Configuración local (fallback si la API falla)
+const AFFILIATE_CONFIG_FALLBACK = {
     // Amazon Associates
     // Registro: https://affiliate-program.amazon.com/
     'Amazon': {
@@ -74,6 +78,45 @@ const AFFILIATE_CONFIG = {
     }
 };
 
+// Configuración real cargada desde API
+let AFFILIATE_CONFIG = {};
+
+/**
+ * Carga la configuración de afiliados desde el backend
+ */
+async function loadAffiliateConfig() {
+    try {
+        const response = await fetch(`${API_URL || 'http://localhost:8000'}/affiliate-config`);
+        if (response.ok) {
+            const config = await response.json();
+
+            // Convertir el formato de BD a formato del frontend
+            AFFILIATE_CONFIG = {};
+            for (const [storeName, storeConfig] of Object.entries(config)) {
+                AFFILIATE_CONFIG[storeName] = {
+                    enabled: storeConfig.enabled,
+                    code: storeConfig.code,
+                    urlPattern: (url, code) => {
+                        // El patrón viene de BD (ej: "?tag={code}")
+                        const pattern = storeConfig.url_pattern;
+                        const finalPattern = pattern.replace('{code}', code);
+                        const separator = url.includes('?') ? '&' : '';
+                        return url + separator + finalPattern;
+                    }
+                };
+            }
+
+            console.log(`📊 Configuración de afiliados cargada: ${Object.keys(AFFILIATE_CONFIG).length} tiendas`);
+        } else {
+            console.warn('⚠️ No se pudo cargar configuración de afiliados, usando fallback');
+            AFFILIATE_CONFIG = AFFILIATE_CONFIG_FALLBACK;
+        }
+    } catch (error) {
+        console.error('Error cargando configuración de afiliados:', error);
+        AFFILIATE_CONFIG = AFFILIATE_CONFIG_FALLBACK;
+    }
+}
+
 /**
  * Obtiene URL con código de afiliado
  * @param {string} storeName - Nombre de la tienda
@@ -111,6 +154,13 @@ function getAffiliateUrl(storeName, originalUrl) {
 function hasAffiliateEnabled(storeName) {
     const config = AFFILIATE_CONFIG[storeName];
     return config && config.enabled && config.code;
+}
+
+// Cargar configuración al inicio
+if (typeof document !== 'undefined') {
+    document.addEventListener('DOMContentLoaded', () => {
+        loadAffiliateConfig();
+    });
 }
 
 // Exportar funciones para usar en app.js

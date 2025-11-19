@@ -297,6 +297,33 @@ def list_stores(active_only: bool = Query(True, description="Solo tiendas activa
     ]
 
 
+@app.get("/affiliate-config")
+def get_affiliate_configuration():
+    """
+    Obtiene la configuración de afiliados para todas las tiendas
+
+    Retorna solo las tiendas que tienen afiliados habilitados,
+    con su código y patrón de URL para el frontend.
+    """
+    with get_db() as conn:
+        stores = conn.execute("""
+            SELECT name, affiliate_code, affiliate_url_pattern
+            FROM stores
+            WHERE affiliate_enabled = 1
+            AND affiliate_code IS NOT NULL
+        """).fetchall()
+
+        config = {}
+        for store in stores:
+            config[store['name']] = {
+                'enabled': True,
+                'code': store['affiliate_code'],
+                'url_pattern': store['affiliate_url_pattern']
+            }
+
+        return config
+
+
 @app.get("/stats")
 def get_statistics():
     """
