@@ -155,6 +155,18 @@ async function createProductCard(product) {
                 const savings = maxPrice - price.price;
                 const savingsPercent = ((savings / maxPrice) * 100).toFixed(0);
 
+                // Botón para ver en tienda (si hay URL)
+                const visitButton = price.url ? `
+                    <a href="${price.url}" target="_blank" rel="noopener noreferrer" class="btn-visit-store">
+                        Ver en tienda
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                            <polyline points="15 3 21 3 21 9"></polyline>
+                            <line x1="10" y1="14" x2="21" y2="3"></line>
+                        </svg>
+                    </a>
+                ` : '';
+
                 return `
                     <div class="price-item ${isBest ? 'best-price' : ''} ${isStale ? 'stale' : ''}">
                         <div class="store-name">
@@ -167,6 +179,7 @@ async function createProductCard(product) {
                         <div class="price-date">
                             ${date.toLocaleDateString('es-CO')}
                         </div>
+                        ${visitButton}
                     </div>
                 `;
             }).join('');

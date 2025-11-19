@@ -79,12 +79,18 @@ body {
 .logo-wrapper {
     display: inline-flex;
     align-items: center;
-    gap: 16px;
-    margin-bottom: 16px;
+    justify-content: center;
+    margin-bottom: 24px;
 }
 
-.logo {
-    font-size: 2.5rem;
+.logo-image {
+    height: 80px;
+    width: auto;
+    transition: var(--transition);
+}
+
+.logo-image:hover {
+    transform: scale(1.02);
 }
 
 .hero-title {
@@ -506,6 +512,44 @@ body {
     color: var(--gray-500);
     margin-top: 4px;
     grid-column: 1 / -1;
+}
+
+.btn-visit-store {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: var(--primary);
+    color: var(--white);
+    text-decoration: none;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    transition: var(--transition);
+    margin-top: 8px;
+    grid-column: 1 / -1;
+    justify-self: start;
+    box-shadow: var(--shadow-xs);
+}
+
+.btn-visit-store:hover {
+    background: var(--gray-800);
+    box-shadow: var(--shadow-sm);
+    transform: translateY(-1px);
+}
+
+.btn-visit-store svg {
+    width: 12px;
+    height: 12px;
+    opacity: 0.9;
+}
+
+.best-price .btn-visit-store {
+    background: var(--success);
+}
+
+.best-price .btn-visit-store:hover {
+    background: #059669;
 }
 
 .no-prices {
