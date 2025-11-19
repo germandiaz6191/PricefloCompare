@@ -232,6 +232,22 @@ async function searchProducts() {
         const products = await response.json();
         currentProducts = products;
         await displayProducts(products);
+
+        // Si no se encontraron resultados, registrar la búsqueda
+        if (products.length === 0) {
+            try {
+                await fetch(`${API_URL}/reports/search-not-found`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ search_term: query })
+                });
+                console.log(`📊 Búsqueda sin resultados registrada: "${query}"`);
+            } catch (error) {
+                console.error('Error registrando búsqueda sin resultados:', error);
+            }
+        }
     } catch (error) {
         console.error('Error buscando productos:', error);
     } finally {

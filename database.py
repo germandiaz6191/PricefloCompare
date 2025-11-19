@@ -78,6 +78,19 @@ def init_db():
         CREATE INDEX IF NOT EXISTS idx_product_frequent
             ON products(is_frequent, update_interval_hours);
 
+        -- Tabla de búsquedas sin resultados (para tracking)
+        CREATE TABLE IF NOT EXISTS search_not_found (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            search_term TEXT NOT NULL UNIQUE,
+            search_count INTEGER DEFAULT 1,
+            ignored INTEGER DEFAULT 0,  -- Si el usuario lo marca como ignorado
+            first_searched_at TEXT DEFAULT (datetime('now')),
+            last_searched_at TEXT DEFAULT (datetime('now'))
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_search_not_found_count
+            ON search_not_found(search_count DESC, ignored);
+
         -- Vista de últimos precios por producto/tienda
         CREATE VIEW IF NOT EXISTS latest_prices AS
         SELECT
@@ -309,6 +322,75 @@ def get_stats() -> Dict[str, Any]:
         stats['products_by_category'] = [dict(row) for row in categories]
 
         return stats
+
+
+# === FUNCIONES DE BÚSQUEDAS NO ENCONTRADAS ===
+
+def record_search_not_found(search_term: str) -> None:
+    """Registra una búsqueda que no tuvo resultados"""
+    with get_db() as conn:
+        # Normalizar el término de búsqueda (lowercase, trim)
+        normalized_term = search_term.strip().lower()
+
+        # Intentar insertar o actualizar
+        conn.execute("""
+            INSERT INTO search_not_found (search_term, search_count, last_searched_at)
+            VALUES (?, 1, datetime('now'))
+            ON CONFLICT(search_term) DO UPDATE SET
+                search_count = search_count + 1,
+                last_searched_at = datetime('now')
+        """, (normalized_term,))
+        conn.commit()
+
+
+def get_search_not_found_report(limit: int = 50, include_ignored: bool = False) -> List[Dict]:
+    """Obtiene reporte de búsquedas sin resultados, ordenado por cantidad"""
+    with get_db() as conn:
+        query = """
+            SELECT
+                id,
+                search_term,
+                search_count,
+                ignored,
+                first_searched_at,
+                last_searched_at
+            FROM search_not_found
+            WHERE 1=1
+        """
+
+        if not include_ignored:
+            query += " AND ignored = 0"
+
+        query += """
+            ORDER BY search_count DESC, last_searched_at DESC
+            LIMIT ?
+        """
+
+        rows = conn.execute(query, (limit,)).fetchall()
+        return [dict(row) for row in rows]
+
+
+def toggle_ignore_search_not_found(search_id: int, ignored: bool = True) -> bool:
+    """Marca/desmarca una búsqueda como ignorada"""
+    with get_db() as conn:
+        cursor = conn.execute("""
+            UPDATE search_not_found
+            SET ignored = ?
+            WHERE id = ?
+        """, (1 if ignored else 0, search_id))
+        conn.commit()
+        return cursor.rowcount > 0
+
+
+def delete_search_not_found(search_id: int) -> bool:
+    """Elimina un registro de búsqueda no encontrada"""
+    with get_db() as conn:
+        cursor = conn.execute("""
+            DELETE FROM search_not_found
+            WHERE id = ?
+        """, (search_id,))
+        conn.commit()
+        return cursor.rowcount > 0
 
 
 # Inicializar BD al importar el módulo

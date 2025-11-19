@@ -18,7 +18,11 @@ from database import (
     get_price_history,
     get_stores,
     get_stats,
-    get_db
+    get_db,
+    record_search_not_found,
+    get_search_not_found_report,
+    toggle_ignore_search_not_found,
+    delete_search_not_found
 )
 
 # Crear app FastAPI
@@ -86,6 +90,23 @@ class ProductWithPrices(BaseModel):
     prices: List[LatestPrice]
     last_update: str
     is_stale: bool
+
+
+class SearchNotFound(BaseModel):
+    id: int
+    search_term: str
+    search_count: int
+    ignored: int
+    first_searched_at: str
+    last_searched_at: str
+
+
+class SearchNotFoundRequest(BaseModel):
+    search_term: str
+
+
+class IgnoreSearchRequest(BaseModel):
+    ignored: bool = True
 
 
 # === ENDPOINTS ===
@@ -328,6 +349,75 @@ def search_products(
         return [dict(row) for row in products]
 
 
+# === REPORTES Y ANALYTICS ===
+
+@app.post("/reports/search-not-found", status_code=201)
+def register_search_not_found(request: SearchNotFoundRequest):
+    """
+    Registra una búsqueda que no tuvo resultados
+
+    - **search_term**: Término que se buscó sin resultados
+    """
+    try:
+        record_search_not_found(request.search_term)
+        return {"message": "Búsqueda registrada", "search_term": request.search_term}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/reports/not-found", response_model=List[SearchNotFound])
+def get_not_found_report(
+    limit: int = Query(50, description="Número de resultados (máx 200)", ge=1, le=200),
+    include_ignored: bool = Query(False, description="Incluir búsquedas ignoradas")
+):
+    """
+    Obtiene el reporte de búsquedas sin resultados (Top 50 por defecto)
+
+    - **limit**: Número de resultados a retornar (1-200, por defecto 50)
+    - **include_ignored**: Si incluir o no las búsquedas marcadas como ignoradas
+
+    Retorna la lista ordenada por cantidad de búsquedas descendente
+    """
+    try:
+        results = get_search_not_found_report(limit=limit, include_ignored=include_ignored)
+        return results
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.patch("/reports/not-found/{search_id}")
+def update_search_not_found_status(
+    search_id: int,
+    request: IgnoreSearchRequest
+):
+    """
+    Marca o desmarca una búsqueda como ignorada
+
+    - **search_id**: ID de la búsqueda
+    - **ignored**: True para ignorar, False para reactivar
+    """
+    success = toggle_ignore_search_not_found(search_id, request.ignored)
+    if not success:
+        raise HTTPException(status_code=404, detail="Búsqueda no encontrada")
+
+    status = "ignorada" if request.ignored else "reactivada"
+    return {"message": f"Búsqueda {status}", "id": search_id, "ignored": request.ignored}
+
+
+@app.delete("/reports/not-found/{search_id}")
+def delete_not_found_entry(search_id: int):
+    """
+    Elimina completamente un registro de búsqueda no encontrada
+
+    - **search_id**: ID de la búsqueda a eliminar
+    """
+    success = delete_search_not_found(search_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Búsqueda no encontrada")
+
+    return {"message": "Búsqueda eliminada", "id": search_id}
+
+
 # === FRONTEND ESTÁTICO ===
 
 # Montar archivos estáticos del frontend (si existe el directorio)
@@ -339,6 +429,11 @@ if os.path.exists(frontend_path):
     async def serve_frontend():
         """Sirve el frontend HTML"""
         return FileResponse(os.path.join(frontend_path, "index.html"))
+
+    @app.get("/reports")
+    async def serve_reports():
+        """Sirve la página de reportes"""
+        return FileResponse(os.path.join(frontend_path, "reports.html"))
 
 
 # === EJECUTAR SERVIDOR ===

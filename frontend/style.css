@@ -93,6 +93,30 @@ body {
     transform: scale(1.02);
 }
 
+.reports-link {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    background: var(--gray-100);
+    color: var(--gray-700);
+    text-decoration: none;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    transition: var(--transition);
+    box-shadow: var(--shadow-xs);
+}
+
+.reports-link:hover {
+    background: var(--gray-200);
+    box-shadow: var(--shadow-sm);
+    transform: translateY(-1px);
+}
+
 .hero-title {
     font-size: 3rem;
     font-weight: 700;
