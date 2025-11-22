@@ -449,6 +449,120 @@ const AutocompleteManager = {
     }
 };
 
+// ===== SISTEMA DE BADGES DE URGENCIA =====
+const UrgencyBadges = {
+    // Analizar precios y retornar badges apropiados
+    analyze(prices, currentPrice) {
+        const badges = [];
+
+        if (!prices || prices.length === 0) return badges;
+
+        // Ordenar precios por fecha (más reciente primero)
+        const sortedPrices = [...prices].sort((a, b) =>
+            new Date(b.scraped_at) - new Date(a.scraped_at)
+        );
+
+        // Precio actual
+        const current = currentPrice.price;
+        const currentDate = new Date(currentPrice.scraped_at);
+
+        // 1. Verificar si es el precio más bajo (comparar con el mismo store)
+        const storePrices = prices.filter(p => p.store_name === currentPrice.store_name);
+        const isLowestPrice = storePrices.every(p => current <= p.price);
+
+        // Precio más bajo en 30 días
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        const recentPrices = storePrices.filter(p => new Date(p.scraped_at) >= thirtyDaysAgo);
+
+        if (recentPrices.length > 5 && isLowestPrice) {
+            badges.push({
+                type: 'lowest-price',
+                text: 'Precio más bajo'
+            });
+        }
+
+        // 2. Detectar precio subiendo (comparar últimos 3 registros)
+        if (storePrices.length >= 3) {
+            const recent3 = storePrices.slice(0, 3).map(p => p.price);
+            const isRising = recent3[0] > recent3[1] && recent3[1] > recent3[2];
+
+            if (isRising && !isLowestPrice) {
+                const increase = ((recent3[0] - recent3[2]) / recent3[2] * 100).toFixed(0);
+                badges.push({
+                    type: 'price-rising',
+                    text: `+${increase}%`
+                });
+            }
+        }
+
+        // 3. Detectar caída reciente de precio (últimas 48 horas)
+        const twoDaysAgo = new Date();
+        twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+        const veryRecentPrices = storePrices.filter(p => new Date(p.scraped_at) >= twoDaysAgo);
+
+        if (veryRecentPrices.length >= 2) {
+            const oldestRecent = veryRecentPrices[veryRecentPrices.length - 1].price;
+            const drop = ((oldestRecent - current) / oldestRecent * 100);
+
+            if (drop > 5) {
+                badges.push({
+                    type: 'recent-drop',
+                    text: `Bajó ${drop.toFixed(0)}%`
+                });
+            }
+        }
+
+        // 4. Gran descuento (comparar con precio máximo de todos los stores)
+        const allPrices = prices.map(p => p.price);
+        const maxPrice = Math.max(...allPrices);
+        const discount = ((maxPrice - current) / maxPrice * 100);
+
+        if (discount >= 15 && !badges.some(b => b.type === 'lowest-price')) {
+            badges.push({
+                type: 'big-discount',
+                text: `${discount.toFixed(0)}% off`
+            });
+        }
+
+        // 5. Precio estable (sin cambios en últimos 7 días)
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        const weekPrices = storePrices.filter(p => new Date(p.scraped_at) >= sevenDaysAgo);
+
+        if (weekPrices.length >= 3 && badges.length === 0) {
+            const priceVariation = Math.max(...weekPrices.map(p => p.price)) -
+                                   Math.min(...weekPrices.map(p => p.price));
+            const variationPercent = (priceVariation / current * 100);
+
+            if (variationPercent < 2) {
+                badges.push({
+                    type: 'stable-price',
+                    text: 'Precio estable'
+                });
+            }
+        }
+
+        // Limitar a 2 badges por precio
+        return badges.slice(0, 2);
+    },
+
+    // Renderizar badges HTML
+    render(badges) {
+        if (!badges || badges.length === 0) return '';
+
+        return `
+            <div class="urgency-badges">
+                ${badges.map(badge => `
+                    <span class="urgency-badge ${badge.type}">
+                        ${badge.text}
+                    </span>
+                `).join('')}
+            </div>
+        `;
+    }
+};
+
 // Estado de la aplicación
 let allProducts = [];
 let currentProducts = [];
@@ -667,6 +781,10 @@ function createProductCardSync(product, prices = []) {
             const savings = maxPrice - price.price;
             const savingsPercent = ((savings / maxPrice) * 100).toFixed(0);
 
+            // Analizar y generar badges de urgencia
+            const urgencyBadges = UrgencyBadges.analyze(prices, price);
+            const badgesHTML = UrgencyBadges.render(urgencyBadges);
+
             // Botón para ver en tienda (si hay URL)
             const affiliateUrl = getAffiliateUrl(price.store_name, price.url);
             const isAffiliate = hasAffiliateEnabled(price.store_name);
@@ -699,6 +817,7 @@ function createProductCardSync(product, prices = []) {
                     <div class="price-date">
                         ${date.toLocaleDateString('es-CO')}
                     </div>
+                    ${badgesHTML}
                     ${visitButton}
                 </div>
             `;

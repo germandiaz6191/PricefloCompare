@@ -819,6 +819,114 @@ body {
     font-weight: 600;
 }
 
+/* ===== BADGES DE URGENCIA/ESCASEZ ===== */
+.urgency-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+}
+
+.urgency-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1.2;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+/* Badge: Precio más bajo */
+.urgency-badge.lowest-price {
+    background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+    color: #15803d;
+    border: 1px solid #86efac;
+}
+
+/* Badge: Precio subiendo */
+.urgency-badge.price-rising {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    color: #92400e;
+    border: 1px solid #fcd34d;
+}
+
+/* Badge: Gran descuento */
+.urgency-badge.big-discount {
+    background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+    color: #991b1b;
+    border: 1px solid #fca5a5;
+}
+
+/* Badge: Precio estable */
+.urgency-badge.stable-price {
+    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+    color: #1e40af;
+    border: 1px solid #93c5fd;
+}
+
+/* Badge: Oferta reciente */
+.urgency-badge.recent-drop {
+    background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
+    color: #3730a3;
+    border: 1px solid #a5b4fc;
+}
+
+/* Iconos de badges */
+.urgency-badge::before {
+    font-size: 0.875rem;
+}
+
+.urgency-badge.lowest-price::before {
+    content: '🔥';
+}
+
+.urgency-badge.price-rising::before {
+    content: '📈';
+}
+
+.urgency-badge.big-discount::before {
+    content: '💰';
+}
+
+.urgency-badge.stable-price::before {
+    content: '📊';
+}
+
+.urgency-badge.recent-drop::before {
+    content: '⬇️';
+}
+
+/* Animación sutil para badges importantes */
+.urgency-badge.lowest-price,
+.urgency-badge.big-discount {
+    animation: badgePulse 2s ease-in-out infinite;
+}
+
+@keyframes badgePulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+}
+
+/* Mobile: badges más pequeños */
+@media (max-width: 480px) {
+    .urgency-badge {
+        font-size: 0.688rem;
+        padding: 3px 8px;
+    }
+
+    .urgency-badge::before {
+        font-size: 0.75rem;
+    }
+}
+
 /* ===== MEJORAS TÁCTILES GENERALES ===== */
 /* Smooth scrolling en móvil */
 html {
