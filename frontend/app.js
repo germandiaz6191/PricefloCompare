@@ -132,6 +132,198 @@ const ToastManager = {
     }
 };
 
+// ===== AUTOCOMPLETE SYSTEM =====
+const AutocompleteManager = {
+    dropdown: null,
+    searchInput: null,
+    selectedIndex: -1,
+    suggestions: [],
+    debounceTimer: null,
+
+    init() {
+        this.dropdown = document.getElementById('autocompleteDropdown');
+        this.searchInput = document.getElementById('searchInput');
+
+        if (!this.searchInput || !this.dropdown) return;
+
+        // Event listeners
+        this.searchInput.addEventListener('input', (e) => this.handleInput(e));
+        this.searchInput.addEventListener('keydown', (e) => this.handleKeydown(e));
+
+        // Cerrar dropdown cuando se hace click fuera
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.autocomplete-wrapper')) {
+                this.hide();
+            }
+        });
+    },
+
+    handleInput(e) {
+        const query = e.target.value.trim();
+
+        // Limpiar el timer anterior
+        clearTimeout(this.debounceTimer);
+
+        if (query.length < 2) {
+            this.hide();
+            return;
+        }
+
+        // Debounce: esperar 300ms después de que el usuario deje de escribir
+        this.debounceTimer = setTimeout(() => {
+            this.fetchSuggestions(query);
+        }, 300);
+    },
+
+    async fetchSuggestions(query) {
+        try {
+            this.showLoading();
+
+            const response = await fetch(`${API_URL}/search?q=${encodeURIComponent(query)}`);
+
+            if (!response.ok) {
+                throw new Error('Error fetching suggestions');
+            }
+
+            const products = await response.json();
+
+            // Limitar a 8 sugerencias
+            this.suggestions = products.slice(0, 8);
+            this.selectedIndex = -1;
+
+            this.renderSuggestions(query);
+        } catch (error) {
+            console.error('Error fetching autocomplete suggestions:', error);
+            this.hide();
+        }
+    },
+
+    showLoading() {
+        this.dropdown.innerHTML = `
+            <div class="autocomplete-loading">
+                <div class="autocomplete-spinner"></div>
+                Buscando...
+            </div>
+        `;
+        this.dropdown.classList.add('show');
+    },
+
+    renderSuggestions(query) {
+        if (this.suggestions.length === 0) {
+            this.dropdown.innerHTML = `
+                <div class="autocomplete-no-results">
+                    No se encontraron productos para "${query}"
+                </div>
+            `;
+            this.dropdown.classList.add('show');
+            return;
+        }
+
+        const html = this.suggestions.map((product, index) => `
+            <div class="autocomplete-item" data-index="${index}" data-product-name="${product.name}">
+                <div class="autocomplete-icon">🔍</div>
+                <div class="autocomplete-text">
+                    <div class="autocomplete-title">${this.highlightMatch(product.name, query)}</div>
+                    ${product.category ? `<div class="autocomplete-subtitle">${product.category}</div>` : ''}
+                </div>
+            </div>
+        `).join('');
+
+        this.dropdown.innerHTML = html;
+        this.dropdown.classList.add('show');
+
+        // Event listeners para los items
+        this.dropdown.querySelectorAll('.autocomplete-item').forEach(item => {
+            item.addEventListener('click', () => this.selectItem(parseInt(item.dataset.index)));
+            item.addEventListener('mouseenter', () => this.hoverItem(parseInt(item.dataset.index)));
+        });
+    },
+
+    highlightMatch(text, query) {
+        const regex = new RegExp(`(${query})`, 'gi');
+        return text.replace(regex, '<strong>$1</strong>');
+    },
+
+    handleKeydown(e) {
+        if (!this.dropdown.classList.contains('show')) return;
+
+        const items = this.dropdown.querySelectorAll('.autocomplete-item');
+
+        switch (e.key) {
+            case 'ArrowDown':
+                e.preventDefault();
+                this.selectedIndex = Math.min(this.selectedIndex + 1, items.length - 1);
+                this.updateSelection();
+                break;
+
+            case 'ArrowUp':
+                e.preventDefault();
+                this.selectedIndex = Math.max(this.selectedIndex - 1, -1);
+                this.updateSelection();
+                break;
+
+            case 'Enter':
+                e.preventDefault();
+                if (this.selectedIndex >= 0) {
+                    this.selectItem(this.selectedIndex);
+                } else {
+                    // Si no hay selección, ejecutar búsqueda normal
+                    searchProducts();
+                }
+                break;
+
+            case 'Escape':
+                e.preventDefault();
+                this.hide();
+                // Si el input está vacío, recargar todos los productos
+                if (!this.searchInput.value.trim()) {
+                    loadProducts(selectedCategory);
+                }
+                break;
+        }
+    },
+
+    updateSelection() {
+        const items = this.dropdown.querySelectorAll('.autocomplete-item');
+
+        items.forEach((item, index) => {
+            if (index === this.selectedIndex) {
+                item.classList.add('selected');
+                item.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+            } else {
+                item.classList.remove('selected');
+            }
+        });
+
+        // Actualizar input con el texto seleccionado
+        if (this.selectedIndex >= 0 && this.suggestions[this.selectedIndex]) {
+            this.searchInput.value = this.suggestions[this.selectedIndex].name;
+        }
+    },
+
+    hoverItem(index) {
+        this.selectedIndex = index;
+        this.updateSelection();
+    },
+
+    selectItem(index) {
+        if (index < 0 || index >= this.suggestions.length) return;
+
+        const product = this.suggestions[index];
+        this.searchInput.value = product.name;
+        this.hide();
+
+        // Ejecutar búsqueda
+        searchProducts();
+    },
+
+    hide() {
+        this.dropdown.classList.remove('show');
+        this.selectedIndex = -1;
+        this.suggestions = [];
+    }
+};
+
 // Estado de la aplicación
 let allProducts = [];
 let currentProducts = [];
@@ -140,6 +332,10 @@ let selectedCategory = null;
 // Inicializar la aplicación
 document.addEventListener('DOMContentLoaded', () => {
     console.log('🚀 PricefloCompare iniciado');
+
+    // Inicializar autocomplete
+    AutocompleteManager.init();
+
     loadStats();
     loadCategories();
     loadProducts();
@@ -444,6 +640,9 @@ function filterByCategory(category) {
 async function searchProducts() {
     const query = document.getElementById('searchInput').value.trim();
 
+    // Cerrar autocomplete
+    AutocompleteManager.hide();
+
     if (!query) {
         loadProducts(selectedCategory);
         return;
@@ -551,26 +750,6 @@ function viewHistory(productId) {
 function showLoading(show) {
     document.getElementById('loading').style.display = show ? 'flex' : 'none';
 }
-
-// Enter para buscar
-document.addEventListener('DOMContentLoaded', () => {
-    const searchInput = document.getElementById('searchInput');
-    if (searchInput) {
-        searchInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                searchProducts();
-            }
-        });
-
-        // Limpiar búsqueda con Escape
-        searchInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                searchInput.value = '';
-                loadProducts(selectedCategory);
-            }
-        });
-    }
-});
 
 // Tracking de clics en botones "Ver en tienda"
 async function trackClick(storeName, productId) {
