@@ -541,39 +541,93 @@ body {
 .btn-visit-store {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 6px 12px;
-    background: var(--primary);
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 24px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: var(--white);
     text-decoration: none;
-    border-radius: 6px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    transition: var(--transition);
-    margin-top: 8px;
+    border-radius: 8px;
+    font-size: 0.9375rem;
+    font-weight: 700;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    margin-top: 12px;
     grid-column: 1 / -1;
-    justify-self: start;
-    box-shadow: var(--shadow-xs);
+    justify-self: stretch;
+    box-shadow: 0 4px 14px 0 rgba(102, 126, 234, 0.39);
+    position: relative;
+    overflow: hidden;
+    letter-spacing: 0.3px;
+}
+
+.btn-visit-store::before {
+    content: '💰';
+    font-size: 1.1em;
+    animation: bounce 2s ease-in-out infinite;
+}
+
+.btn-visit-store::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    transition: left 0.5s;
+}
+
+.btn-visit-store:hover::after {
+    left: 100%;
 }
 
 .btn-visit-store:hover {
-    background: var(--gray-800);
-    box-shadow: var(--shadow-sm);
-    transform: translateY(-1px);
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 6px 20px 0 rgba(102, 126, 234, 0.5);
+}
+
+.btn-visit-store:active {
+    transform: translateY(0) scale(0.98);
 }
 
 .btn-visit-store svg {
-    width: 12px;
-    height: 12px;
-    opacity: 0.9;
+    width: 16px;
+    height: 16px;
+    opacity: 1;
+    transition: transform 0.3s;
+}
+
+.btn-visit-store:hover svg {
+    transform: translateX(3px);
+}
+
+@keyframes bounce {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-3px);
+    }
 }
 
 .best-price .btn-visit-store {
-    background: var(--success);
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    box-shadow: 0 4px 14px 0 rgba(16, 185, 129, 0.45);
+    animation: pulse-glow 2s ease-in-out infinite;
 }
 
 .best-price .btn-visit-store:hover {
-    background: #059669;
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    box-shadow: 0 6px 20px 0 rgba(16, 185, 129, 0.6);
+}
+
+@keyframes pulse-glow {
+    0%, 100% {
+        box-shadow: 0 4px 14px 0 rgba(16, 185, 129, 0.45);
+    }
+    50% {
+        box-shadow: 0 4px 20px 0 rgba(16, 185, 129, 0.7);
+    }
 }
 
 .no-prices {
@@ -941,5 +995,101 @@ button:disabled {
     .ad-footer {
         min-height: 50px;
         margin: 15px auto;
+    }
+}
+
+/* ===== SKELETON LOADING ===== */
+.skeleton-card {
+    background: var(--white);
+    border: 1px solid var(--gray-200);
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: var(--shadow-sm);
+    animation: skeleton-pulse 1.5s ease-in-out infinite;
+}
+
+.skeleton-header {
+    height: 24px;
+    background: linear-gradient(90deg, var(--gray-200) 25%, var(--gray-100) 50%, var(--gray-200) 75%);
+    background-size: 200% 100%;
+    border-radius: 4px;
+    margin-bottom: 16px;
+    animation: skeleton-shimmer 1.5s infinite;
+}
+
+.skeleton-line {
+    height: 16px;
+    background: linear-gradient(90deg, var(--gray-200) 25%, var(--gray-100) 50%, var(--gray-200) 75%);
+    background-size: 200% 100%;
+    border-radius: 4px;
+    margin-bottom: 12px;
+    animation: skeleton-shimmer 1.5s infinite;
+}
+
+.skeleton-line.short {
+    width: 60%;
+}
+
+.skeleton-line.medium {
+    width: 80%;
+}
+
+.skeleton-price {
+    height: 80px;
+    background: linear-gradient(90deg, var(--gray-200) 25%, var(--gray-100) 50%, var(--gray-200) 75%);
+    background-size: 200% 100%;
+    border-radius: 8px;
+    margin: 16px 0;
+    animation: skeleton-shimmer 1.5s infinite;
+}
+
+.skeleton-button {
+    height: 40px;
+    background: linear-gradient(90deg, var(--gray-200) 25%, var(--gray-100) 50%, var(--gray-200) 75%);
+    background-size: 200% 100%;
+    border-radius: 8px;
+    animation: skeleton-shimmer 1.5s infinite;
+}
+
+@keyframes skeleton-shimmer {
+    0% {
+        background-position: -200% 0;
+    }
+    100% {
+        background-position: 200% 0;
+    }
+}
+
+@keyframes skeleton-pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
+}
+
+/* Grid de skeletons */
+.skeletons-grid {
+    display: grid;
+    gap: 24px;
+    grid-template-columns: 1fr;
+}
+
+@media (min-width: 640px) {
+    .skeletons-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (min-width: 1024px) {
+    .skeletons-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (min-width: 1440px) {
+    .skeletons-grid {
+        grid-template-columns: repeat(4, 1fr);
     }
 }

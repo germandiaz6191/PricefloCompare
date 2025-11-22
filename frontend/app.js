@@ -1,5 +1,22 @@
-// Configuración de la API
-const API_URL = 'http://localhost:8000';
+// Configuración de la API - Detecta ambiente automáticamente
+const API_URL = (() => {
+    const hostname = window.location.hostname;
+
+    // Desarrollo local
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+        return 'http://localhost:8000';
+    }
+
+    // Vercel deployment
+    if (hostname.includes('vercel.app')) {
+        return `https://${hostname}`;
+    }
+
+    // Producción con dominio custom
+    return window.location.origin;
+})();
+
+console.log('🌐 API URL configurada:', API_URL);
 
 // Estado de la aplicación
 let allProducts = [];
@@ -106,11 +123,33 @@ async function loadProducts(category = null) {
     }
 }
 
+// Mostrar skeletons de carga
+function showSkeletons(count = 6) {
+    const grid = document.getElementById('productsGrid');
+    grid.innerHTML = '';
+    grid.className = 'skeletons-grid';
+
+    for (let i = 0; i < count; i++) {
+        const skeleton = document.createElement('div');
+        skeleton.className = 'skeleton-card';
+        skeleton.innerHTML = `
+            <div class="skeleton-header"></div>
+            <div class="skeleton-line"></div>
+            <div class="skeleton-line medium"></div>
+            <div class="skeleton-price"></div>
+            <div class="skeleton-line short"></div>
+            <div class="skeleton-button"></div>
+        `;
+        grid.appendChild(skeleton);
+    }
+}
+
 // Mostrar productos en la grilla
 async function displayProducts(products) {
     const grid = document.getElementById('productsGrid');
 
     if (products.length === 0) {
+        grid.className = 'products-grid';
         grid.innerHTML = `
             <div class="no-results">
                 <h3>📦 No hay productos</h3>
@@ -121,83 +160,98 @@ async function displayProducts(products) {
         return;
     }
 
+    // Mostrar skeletons mientras carga
+    showSkeletons(products.length);
+
+    // OPTIMIZACIÓN: Cargar todos los precios en PARALELO
+    const startTime = performance.now();
+    console.log(`⚡ Cargando ${products.length} productos en paralelo...`);
+
+    // Crear todas las promesas de fetch en paralelo
+    const pricesPromises = products.map(product =>
+        fetch(`${API_URL}/products/${product.id}/prices`)
+            .then(response => response.json())
+            .catch(error => {
+                console.error(`Error cargando precios de ${product.name}:`, error);
+                return [];
+            })
+    );
+
+    // Esperar a que TODAS terminen
+    const allPrices = await Promise.all(pricesPromises);
+
+    const endTime = performance.now();
+    console.log(`✅ Precios cargados en ${(endTime - startTime).toFixed(0)}ms`);
+
+    // Ahora crear las cards con los datos ya disponibles
+    grid.className = 'products-grid';
     grid.innerHTML = '';
 
-    for (const product of products) {
-        const card = await createProductCard(product);
+    products.forEach((product, index) => {
+        const card = createProductCardSync(product, allPrices[index]);
         grid.appendChild(card);
-    }
+    });
 }
 
-// Crear tarjeta de producto
-async function createProductCard(product) {
+// Crear tarjeta de producto (versión síncrona con precios pre-cargados)
+function createProductCardSync(product, prices = []) {
     const card = document.createElement('div');
     card.className = 'product-card';
 
-    // Obtener precios del producto
-    let pricesHTML = '<p class="no-prices">Cargando precios...</p>';
+    let pricesHTML;
 
-    try {
-        const response = await fetch(`${API_URL}/products/${product.id}/prices`);
-        const prices = await response.json();
+    if (prices.length > 0) {
+        // Ordenar por precio
+        prices.sort((a, b) => a.price - b.price);
 
-        if (prices.length > 0) {
-            // Ordenar por precio
-            prices.sort((a, b) => a.price - b.price);
+        pricesHTML = prices.map((price, index) => {
+            const isStale = price.is_stale;
+            const isBest = index === 0;
+            const date = new Date(price.scraped_at);
 
-            pricesHTML = prices.map((price, index) => {
-                const isStale = price.is_stale;
-                const isBest = index === 0;
-                const date = new Date(price.scraped_at);
+            // Calcular ahorro vs el más caro
+            const maxPrice = Math.max(...prices.map(p => p.price));
+            const savings = maxPrice - price.price;
+            const savingsPercent = ((savings / maxPrice) * 100).toFixed(0);
 
-                // Calcular ahorro vs el más caro
-                const maxPrice = Math.max(...prices.map(p => p.price));
-                const savings = maxPrice - price.price;
-                const savingsPercent = ((savings / maxPrice) * 100).toFixed(0);
+            // Botón para ver en tienda (si hay URL)
+            const affiliateUrl = getAffiliateUrl(price.store_name, price.url);
+            const isAffiliate = hasAffiliateEnabled(price.store_name);
+            const relAttr = isAffiliate ? 'noopener noreferrer sponsored' : 'noopener noreferrer';
 
-                // Botón para ver en tienda (si hay URL)
-                // Usar getAffiliateUrl para agregar código de afiliado si está configurado
-                const affiliateUrl = getAffiliateUrl(price.store_name, price.url);
-                const isAffiliate = hasAffiliateEnabled(price.store_name);
-                const relAttr = isAffiliate ? 'noopener noreferrer sponsored' : 'noopener noreferrer';
+            const visitButton = affiliateUrl ? `
+                <a href="${affiliateUrl}"
+                   target="_blank"
+                   rel="${relAttr}"
+                   class="btn-visit-store"
+                   onclick="trackClick('${price.store_name}', ${product.id})">
+                    Ver en tienda
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                        <polyline points="15 3 21 3 21 9"></polyline>
+                        <line x1="10" y1="14" x2="21" y2="3"></line>
+                    </svg>
+                </a>
+            ` : '';
 
-                const visitButton = affiliateUrl ? `
-                    <a href="${affiliateUrl}"
-                       target="_blank"
-                       rel="${relAttr}"
-                       class="btn-visit-store"
-                       onclick="trackClick('${price.store_name}', ${product.id})">
-                        Ver en tienda
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-                            <polyline points="15 3 21 3 21 9"></polyline>
-                            <line x1="10" y1="14" x2="21" y2="3"></line>
-                        </svg>
-                    </a>
-                ` : '';
-
-                return `
-                    <div class="price-item ${isBest ? 'best-price' : ''} ${isStale ? 'stale' : ''}">
-                        <div class="store-name">
-                            ${price.store_name}
-                            ${isBest && savings > 0 ? `<br><small style="color: #059669; font-weight: 600;">Ahorro: ${savingsPercent}%</small>` : ''}
-                        </div>
-                        <div class="price">
-                            $${price.price.toLocaleString('es-CO')}
-                        </div>
-                        <div class="price-date">
-                            ${date.toLocaleDateString('es-CO')}
-                        </div>
-                        ${visitButton}
+            return `
+                <div class="price-item ${isBest ? 'best-price' : ''} ${isStale ? 'stale' : ''}">
+                    <div class="store-name">
+                        ${price.store_name}
+                        ${isBest && savings > 0 ? `<br><small style="color: #059669; font-weight: 600;">Ahorro: ${savingsPercent}%</small>` : ''}
                     </div>
-                `;
-            }).join('');
-        } else {
-            pricesHTML = '<p class="no-prices">💤 Sin precios disponibles</p>';
-        }
-    } catch (error) {
-        console.error(`Error cargando precios de ${product.name}:`, error);
-        pricesHTML = '<p class="no-prices">❌ Error al cargar precios</p>';
+                    <div class="price">
+                        $${price.price.toLocaleString('es-CO')}
+                    </div>
+                    <div class="price-date">
+                        ${date.toLocaleDateString('es-CO')}
+                    </div>
+                    ${visitButton}
+                </div>
+            `;
+        }).join('');
+    } else {
+        pricesHTML = '<p class="no-prices">💤 Sin precios disponibles</p>';
     }
 
     card.innerHTML = `
@@ -216,6 +270,18 @@ async function createProductCard(product) {
     `;
 
     return card;
+}
+
+// Versión async de createProductCard (mantener para compatibilidad)
+async function createProductCard(product) {
+    try {
+        const response = await fetch(`${API_URL}/products/${product.id}/prices`);
+        const prices = await response.json();
+        return createProductCardSync(product, prices);
+    } catch (error) {
+        console.error(`Error cargando precios de ${product.name}:`, error);
+        return createProductCardSync(product, []);
+    }
 }
 
 // Filtrar por categoría
