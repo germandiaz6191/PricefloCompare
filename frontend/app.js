@@ -18,6 +18,130 @@ const API_URL = (() => {
 
 console.log('🌐 API URL configurada:', API_URL);
 
+// ===== MANEJO DE ERRORES CON RETRY =====
+const FetchManager = {
+    // Fetch con retry automático y manejo de errores
+    async safeFetch(url, options = {}, retries = 3) {
+        const {
+            method = 'GET',
+            headers = {},
+            body = null,
+            timeout = 10000,
+            showToast = true
+        } = options;
+
+        let lastError;
+
+        for (let attempt = 0; attempt <= retries; attempt++) {
+            try {
+                // Crear AbortController para timeout
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+                const fetchOptions = {
+                    method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...headers
+                    },
+                    signal: controller.signal
+                };
+
+                if (body && method !== 'GET') {
+                    fetchOptions.body = typeof body === 'string' ? body : JSON.stringify(body);
+                }
+
+                const response = await fetch(url, fetchOptions);
+                clearTimeout(timeoutId);
+
+                // Verificar si la respuesta es OK
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                // Intentar parsear JSON
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('application/json')) {
+                    return await response.json();
+                } else {
+                    return await response.text();
+                }
+
+            } catch (error) {
+                lastError = error;
+
+                // Si es el último intento, lanzar error
+                if (attempt === retries) {
+                    if (showToast) {
+                        this.handleError(error, url);
+                    }
+                    throw error;
+                }
+
+                // Exponential backoff: esperar 2^attempt * 500ms
+                const waitTime = Math.pow(2, attempt) * 500;
+                console.log(`⚠️ Intento ${attempt + 1} falló. Reintentando en ${waitTime}ms...`);
+
+                if (showToast && attempt === 0) {
+                    ToastManager.warning(
+                        'Reintentando...',
+                        'Hubo un problema. Intentando nuevamente.',
+                        2000
+                    );
+                }
+
+                await new Promise(resolve => setTimeout(resolve, waitTime));
+            }
+        }
+
+        throw lastError;
+    },
+
+    // Manejo centralizado de errores
+    handleError(error, url) {
+        console.error(`Error en ${url}:`, error);
+
+        let title = 'Error de conexión';
+        let message = 'No se pudo completar la solicitud.';
+
+        if (error.name === 'AbortError') {
+            title = 'Tiempo de espera agotado';
+            message = 'La solicitud tardó demasiado. Verifica tu conexión.';
+        } else if (error.message.includes('NetworkError') || error.message.includes('Failed to fetch')) {
+            title = 'Sin conexión';
+            message = 'Verifica tu conexión a Internet e intenta nuevamente.';
+        } else if (error.message.includes('HTTP 404')) {
+            title = 'No encontrado';
+            message = 'El recurso solicitado no existe.';
+        } else if (error.message.includes('HTTP 500')) {
+            title = 'Error del servidor';
+            message = 'El servidor encontró un problema. Intenta más tarde.';
+        } else if (error.message.includes('HTTP 401') || error.message.includes('HTTP 403')) {
+            title = 'No autorizado';
+            message = 'No tienes permisos para realizar esta acción.';
+        }
+
+        ToastManager.error(title, message, 7000);
+    },
+
+    // Atajos para métodos comunes
+    async get(url, options = {}) {
+        return this.safeFetch(url, { ...options, method: 'GET' });
+    },
+
+    async post(url, body, options = {}) {
+        return this.safeFetch(url, { ...options, method: 'POST', body });
+    },
+
+    async put(url, body, options = {}) {
+        return this.safeFetch(url, { ...options, method: 'PUT', body });
+    },
+
+    async delete(url, options = {}) {
+        return this.safeFetch(url, { ...options, method: 'DELETE' });
+    }
+};
+
 // ===== SISTEMA DE TOAST NOTIFICATIONS =====
 const ToastManager = {
     container: null,
@@ -179,13 +303,14 @@ const AutocompleteManager = {
         try {
             this.showLoading();
 
-            const response = await fetch(`${API_URL}/search?q=${encodeURIComponent(query)}`);
-
-            if (!response.ok) {
-                throw new Error('Error fetching suggestions');
-            }
-
-            const products = await response.json();
+            const products = await FetchManager.get(
+                `${API_URL}/search?q=${encodeURIComponent(query)}`,
+                {
+                    timeout: 5000,
+                    showToast: false,
+                    retries: 1
+                }
+            );
 
             // Limitar a 8 sugerencias
             this.suggestions = products.slice(0, 8);
@@ -344,13 +469,10 @@ document.addEventListener('DOMContentLoaded', () => {
 // Cargar estadísticas
 async function loadStats() {
     try {
-        const response = await fetch(`${API_URL}/stats`);
-
-        if (!response.ok) {
-            throw new Error(`Error ${response.status}: ${response.statusText}`);
-        }
-
-        const stats = await response.json();
+        const stats = await FetchManager.get(`${API_URL}/stats`, {
+            timeout: 5000,
+            showToast: false
+        });
 
         document.getElementById('totalProducts').textContent = stats.total_products;
         document.getElementById('totalStores').textContent = stats.total_stores;
@@ -389,13 +511,10 @@ async function loadStats() {
 // Cargar categorías
 async function loadCategories() {
     try {
-        const response = await fetch(`${API_URL}/categories`);
-
-        if (!response.ok) {
-            throw new Error(`Error ${response.status}`);
-        }
-
-        const categories = await response.json();
+        const categories = await FetchManager.get(`${API_URL}/categories`, {
+            timeout: 5000,
+            showToast: false
+        });
 
         const categoriesDiv = document.getElementById('categories');
         categoriesDiv.innerHTML = `
@@ -431,19 +550,21 @@ async function loadProducts(category = null) {
             url += `?category=${encodeURIComponent(category)}`;
         }
 
-        const response = await fetch(url);
-        allProducts = await response.json();
-        currentProducts = [...allProducts];
+        allProducts = await FetchManager.get(url, {
+            timeout: 15000,
+            showToast: true
+        });
 
+        currentProducts = [...allProducts];
         await displayProducts(currentProducts);
     } catch (error) {
         console.error('Error cargando productos:', error);
         document.getElementById('productsGrid').innerHTML = `
             <div class="error">
                 <h3>⚠️ Error al cargar productos</h3>
-                <p>${error.message}</p>
+                <p>No se pudieron cargar los productos</p>
                 <p>Asegúrate de que la API esté corriendo en <code>${API_URL}</code></p>
-                <button onclick="location.reload()" class="btn-history" style="margin-top: 20px;">
+                <button onclick="loadProducts(${category ? `'${category}'` : 'null'})" class="btn-history" style="margin-top: 20px;">
                     🔄 Reintentar
                 </button>
             </div>
@@ -499,12 +620,14 @@ async function displayProducts(products) {
 
     // Crear todas las promesas de fetch en paralelo
     const pricesPromises = products.map(product =>
-        fetch(`${API_URL}/products/${product.id}/prices`)
-            .then(response => response.json())
-            .catch(error => {
-                console.error(`Error cargando precios de ${product.name}:`, error);
-                return [];
-            })
+        FetchManager.get(`${API_URL}/products/${product.id}/prices`, {
+            timeout: 10000,
+            showToast: false,
+            retries: 2
+        }).catch(error => {
+            console.error(`Error cargando precios de ${product.name}:`, error);
+            return [];
+        })
     );
 
     // Esperar a que TODAS terminen
@@ -605,8 +728,11 @@ function createProductCardSync(product, prices = []) {
 // Versión async de createProductCard (mantener para compatibilidad)
 async function createProductCard(product) {
     try {
-        const response = await fetch(`${API_URL}/products/${product.id}/prices`);
-        const prices = await response.json();
+        const prices = await FetchManager.get(`${API_URL}/products/${product.id}/prices`, {
+            timeout: 8000,
+            showToast: false,
+            retries: 2
+        });
         return createProductCardSync(product, prices);
     } catch (error) {
         console.error(`Error cargando precios de ${product.name}:`, error);
@@ -651,13 +777,13 @@ async function searchProducts() {
     showLoading(true);
 
     try {
-        const response = await fetch(`${API_URL}/search?q=${encodeURIComponent(query)}`);
-
-        if (!response.ok) {
-            throw new Error(`Error ${response.status}`);
-        }
-
-        const products = await response.json();
+        const products = await FetchManager.get(
+            `${API_URL}/search?q=${encodeURIComponent(query)}`,
+            {
+                timeout: 10000,
+                showToast: true
+            }
+        );
         currentProducts = products;
         await displayProducts(products);
 
@@ -671,13 +797,11 @@ async function searchProducts() {
 
             // Registrar la búsqueda sin resultados
             try {
-                await fetch(`${API_URL}/reports/search-not-found`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ search_term: query })
-                });
+                await FetchManager.post(
+                    `${API_URL}/reports/search-not-found`,
+                    { search_term: query },
+                    { showToast: false, timeout: 5000, retries: 1 }
+                );
                 console.log(`📊 Búsqueda sin resultados registrada: "${query}"`);
             } catch (error) {
                 console.error('Error registrando búsqueda sin resultados:', error);
@@ -691,11 +815,7 @@ async function searchProducts() {
         }
     } catch (error) {
         console.error('Error buscando productos:', error);
-        ToastManager.error(
-            'Error en la búsqueda',
-            'No pudimos completar la búsqueda. Intenta nuevamente.',
-            5000
-        );
+        // El error ya fue mostrado por FetchManager
     } finally {
         showLoading(false);
     }
@@ -711,8 +831,11 @@ async function sortProducts() {
     const productsWithPrices = await Promise.all(
         currentProducts.map(async (product) => {
             try {
-                const response = await fetch(`${API_URL}/products/${product.id}/prices`);
-                const prices = await response.json();
+                const prices = await FetchManager.get(`${API_URL}/products/${product.id}/prices`, {
+                    timeout: 8000,
+                    showToast: false,
+                    retries: 2
+                });
                 const minPrice = prices.length > 0 ? Math.min(...prices.map(p => p.price)) : Infinity;
                 return { ...product, minPrice };
             } catch (error) {
@@ -755,17 +878,19 @@ function showLoading(show) {
 async function trackClick(storeName, productId) {
     try {
         // Registrar el clic en el backend para estadísticas
-        await fetch(`${API_URL}/track/click`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
+        await FetchManager.post(
+            `${API_URL}/track/click`,
+            {
                 store_name: storeName,
                 product_id: productId,
                 timestamp: new Date().toISOString()
-            })
-        });
+            },
+            {
+                showToast: false,
+                timeout: 3000,
+                retries: 1
+            }
+        );
 
         // Mostrar feedback al usuario
         ToastManager.info(
