@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PricefloCompare - Comparador Profesional de Precios</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Hero Header -->
+        <header class="hero">
+            <div class="hero-content">
+                <div class="logo-wrapper">
+                    <img src="/static/logo.svg" alt="PricefloCompare Logo" class="logo-image">
+                    <a href="/reports" class="reports-link" title="Ver reportes de búsquedas">
+                        📊 Reportes
+                    </a>
+                </div>
+                <p class="hero-subtitle">
+                    Comparador profesional de precios para las principales tiendas de Colombia
+                </p>
+                <div class="hero-badges">
+                    <span class="badge badge-live">
+                        <span class="pulse-dot"></span>
+                        En tiempo real
+                    </span>
+                    <span class="badge badge-info" id="updateBadge">
+                        Actualizado recientemente
+                    </span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Search Section -->
+        <div class="search-section">
+            <div class="search-wrapper">
+                <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <path d="m21 21-4.35-4.35"></path>
+                </svg>
+                <input
+                    type="text"
+                    id="searchInput"
+                    placeholder="Buscar productos: lavadoras, celulares, electrodomésticos..."
+                    class="search-input"
+                    autocomplete="off"
+                >
+                <button onclick="searchProducts()" class="search-btn">
+                    <span>Buscar</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                        <polyline points="12 5 19 12 12 19"></polyline>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Ad: Header Banner -->
+        <div class="ad-container ad-header" id="ad-header"></div>
+
+        <!-- Stats Dashboard -->
+        <div class="stats-dashboard" id="stats">
+            <div class="stat-card">
+                <div class="stat-icon stat-icon-blue">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M20 7h-9"></path>
+                        <path d="M14 17H5"></path>
+                        <circle cx="17" cy="17" r="3"></circle>
+                        <circle cx="7" cy="7" r="3"></circle>
+                    </svg>
+                </div>
+                <div class="stat-content">
+                    <h3 id="totalProducts">-</h3>
+                    <p>Productos</p>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon stat-icon-purple">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                    </svg>
+                </div>
+                <div class="stat-content">
+                    <h3 id="totalStores">-</h3>
+                    <p>Tiendas</p>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon stat-icon-green">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                    </svg>
+                </div>
+                <div class="stat-content">
+                    <h3 id="totalPrices">-</h3>
+                    <p>Comparaciones</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Categories -->
+        <div class="categories-section">
+            <h2 class="section-title">Categorías</h2>
+            <div class="categories" id="categories">
+                <!-- Se llenan dinámicamente -->
+            </div>
+        </div>
+
+        <!-- Products Grid -->
+        <div class="products-section">
+            <div class="section-header">
+                <h2 class="section-title">Productos</h2>
+                <select class="sort-select" id="sortSelect" onchange="sortProducts()">
+                    <option value="name">Ordenar por nombre</option>
+                    <option value="price-low">Precio: menor a mayor</option>
+                    <option value="price-high">Precio: mayor a menor</option>
+                </select>
+            </div>
+
+            <div class="products-main-layout">
+                <!-- Products -->
+                <div class="products-grid" id="productsGrid">
+                    <!-- Se llenan dinámicamente -->
+                </div>
+
+                <!-- Ad: Sidebar -->
+                <aside class="sidebar-ads">
+                    <div class="ad-container ad-sidebar" id="ad-sidebar"></div>
+                </aside>
+            </div>
+        </div>
+
+        <!-- Loading -->
+        <div class="loading-overlay" id="loading" style="display: none;">
+            <div class="loading-content">
+                <div class="spinner-modern"></div>
+                <p class="loading-text">Cargando productos...</p>
+            </div>
+        </div>
+
+        <!-- Ad: Footer Banner -->
+        <div class="ad-container ad-footer" id="ad-footer"></div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>PricefloCompare</h3>
+                    <p>Sistema profesional de comparación de precios en tiempo real</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Recursos</h4>
+                    <a href="http://localhost:8000/docs" target="_blank" class="footer-link">
+                        Documentación API
+                    </a>
+                </div>
+                <div class="footer-section">
+                    <h4>Última actualización</h4>
+                    <p id="lastUpdate" class="footer-date">-</p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p class="affiliate-disclosure">
+                    💡 <strong>Transparencia:</strong> PricefloCompare puede recibir comisiones cuando compras a través de algunos de nuestros enlaces.
+                    Esto no afecta el precio que pagas y nos ayuda a mantener el servicio gratuito.
+                </p>
+                <p>© 2025 PricefloCompare. Todos los derechos reservados.</p>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Google AdSense (cargar primero) -->
+    <script src="/static/adsense-config.js"></script>
+    <!-- Sistema de afiliados -->
+    <script src="/static/affiliate-config.js"></script>
+    <!-- App principal -->
+    <script src="/static/app.js"></script>
+</body>
+</html>

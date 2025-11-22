@@ -1,0 +1,48 @@
+{
+  "version": 2,
+  "name": "priceflocompare",
+  "builds": [
+    {
+      "src": "api.py",
+      "use": "@vercel/python"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "api.py"
+    },
+    {
+      "src": "/docs",
+      "dest": "api.py"
+    },
+    {
+      "src": "/openapi.json",
+      "dest": "api.py"
+    },
+    {
+      "src": "/static/(.*)",
+      "dest": "frontend/$1"
+    },
+    {
+      "src": "/app",
+      "dest": "frontend/index.html"
+    },
+    {
+      "src": "/reports",
+      "dest": "frontend/reports.html"
+    },
+    {
+      "src": "/",
+      "dest": "frontend/index.html"
+    }
+  ],
+  "env": {
+    "ENV": "production"
+  },
+  "build": {
+    "env": {
+      "PYTHON_VERSION": "3.11"
+    }
+  }
+}

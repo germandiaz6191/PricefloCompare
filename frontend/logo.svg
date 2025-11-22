@@ -1,0 +1,98 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 48" fill="none">
+  <!-- Logo profesional PricefloCompare -->
+
+  <defs>
+    <!-- Gradiente para el icono -->
+    <linearGradient id="priceGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2563eb;stop-opacity:1" />
+    </linearGradient>
+
+    <!-- Gradiente para punto verde -->
+    <linearGradient id="greenGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#10b981;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#059669;stop-opacity:1" />
+    </linearGradient>
+
+    <!-- Sombra suave para el icono -->
+    <filter id="softShadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="1.5"/>
+      <feOffset dx="0" dy="1" result="offsetblur"/>
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.15"/>
+      </feComponentTransfer>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Icono: Etiqueta de precio con gráfico descendente -->
+  <g id="icon" filter="url(#softShadow)">
+    <!-- Etiqueta de precio (forma hexagonal) -->
+    <path d="M 6 18 L 18 18 L 22 24 L 18 30 L 6 30 L 2 24 Z"
+          fill="url(#priceGradient)"
+          opacity="0.12"/>
+
+    <!-- Contorno de etiqueta -->
+    <path d="M 6 18 L 18 18 L 22 24 L 18 30 L 6 30 L 2 24 Z"
+          stroke="url(#priceGradient)"
+          stroke-width="2"
+          fill="none"/>
+
+    <!-- Símbolo de precio (P estilizado) -->
+    <text x="12" y="28"
+          font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+          font-size="12"
+          font-weight="700"
+          fill="url(#priceGradient)"
+          text-anchor="middle">$</text>
+
+    <!-- Gráfico de tendencia a la baja -->
+    <g transform="translate(28, 0)">
+      <!-- Línea de tendencia con curva suave -->
+      <path d="M 2 28 Q 8 20, 14 22 T 26 14"
+            stroke="url(#priceGradient)"
+            stroke-width="2.5"
+            stroke-linecap="round"
+            fill="none"
+            opacity="0.8"/>
+
+      <!-- Puntos de datos -->
+      <circle cx="2" cy="28" r="2.5" fill="#3b82f6"/>
+      <circle cx="14" cy="22" r="2.5" fill="#3b82f6"/>
+
+      <!-- Punto final verde (mejor precio) con destello -->
+      <circle cx="26" cy="14" r="4" fill="url(#greenGradient)"/>
+      <circle cx="26" cy="14" r="2" fill="#d1fae5" opacity="0.6"/>
+
+      <!-- Flecha descendente estilizada -->
+      <path d="M 20 12 L 26 14 L 24 20"
+            stroke="url(#greenGradient)"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            fill="none"/>
+    </g>
+  </g>
+
+  <!-- Texto del logo -->
+  <g id="text">
+    <!-- "Priceflo" en bold -->
+    <text x="64" y="32"
+          font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif"
+          font-size="24"
+          font-weight="700"
+          fill="#0f172a"
+          letter-spacing="-0.02em">Priceflo</text>
+
+    <!-- "Compare" en light -->
+    <text x="156" y="32"
+          font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif"
+          font-size="24"
+          font-weight="300"
+          fill="#64748b"
+          letter-spacing="-0.02em">Compare</text>
+  </g>
+</svg>
