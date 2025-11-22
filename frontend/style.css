@@ -819,6 +819,82 @@ body {
     font-weight: 600;
 }
 
+/* ===== MEJORAS TÁCTILES GENERALES ===== */
+/* Smooth scrolling en móvil */
+html {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+}
+
+/* Mejor scroll en móvil */
+.categories,
+.products-grid,
+.autocomplete-dropdown {
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Botones más accesibles al tacto */
+button,
+a.btn-visit-store,
+a.reports-link,
+.category-btn {
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+}
+
+/* Hover solo en desktop (no en táctil) */
+@media (hover: hover) and (pointer: fine) {
+    button:hover,
+    .btn-visit-store:hover,
+    .category-btn:hover {
+        transform: translateY(-1px);
+    }
+}
+
+/* En móvil/táctil, usar active en vez de hover */
+@media (hover: none) and (pointer: coarse) {
+    button:active,
+    .btn-visit-store:active,
+    .category-btn:active {
+        transform: scale(0.98);
+        opacity: 0.9;
+    }
+}
+
+/* Evitar selección de texto en elementos UI */
+.category-btn,
+.btn-visit-store,
+.btn-history,
+.search-btn,
+.stat-card {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+/* Safe area para iPhone X+ */
+@supports (padding: max(0px)) {
+    .container {
+        padding-left: max(32px, env(safe-area-inset-left));
+        padding-right: max(32px, env(safe-area-inset-right));
+    }
+
+    @media (max-width: 768px) {
+        .container {
+            padding-left: max(16px, env(safe-area-inset-left));
+            padding-right: max(16px, env(safe-area-inset-right));
+        }
+    }
+
+    @media (max-width: 480px) {
+        .container {
+            padding-left: max(12px, env(safe-area-inset-left));
+            padding-right: max(12px, env(safe-area-inset-right));
+        }
+    }
+}
+
 /* ===== RESPONSIVE ===== */
 @media (max-width: 1024px) {
     .products-grid {
@@ -845,11 +921,13 @@ body {
 
     .search-input {
         width: 100%;
+        font-size: 16px; /* Previene zoom en iOS */
     }
 
     .search-btn {
         width: 100%;
         justify-content: center;
+        min-height: 48px; /* Touch target */
     }
 
     .products-grid {
@@ -859,6 +937,7 @@ body {
     .section-header {
         flex-direction: column;
         align-items: stretch;
+        gap: 16px;
     }
 
     .stat-content h3 {
@@ -872,6 +951,29 @@ body {
     .price {
         margin-top: 8px;
     }
+
+    /* Stats en 2 columnas en tablet */
+    .stats-dashboard {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
+    }
+
+    /* Categorías con mejor scroll */
+    .categories {
+        gap: 12px;
+        padding-bottom: 4px;
+    }
+
+    .category-btn {
+        padding: 10px 18px;
+        min-height: 44px; /* Touch target */
+    }
+
+    /* Reportes link más visible */
+    .reports-link {
+        padding: 8px 16px;
+        font-size: 0.875rem;
+    }
 }
 
 @media (max-width: 480px) {
@@ -881,6 +983,143 @@ body {
 
     .stat-content h3 {
         font-size: 1.5rem;
+    }
+
+    /* Reducir padding en contenedor */
+    .container {
+        padding: 16px 12px;
+    }
+
+    /* Hero más compacto */
+    .hero {
+        padding: 24px 0;
+    }
+
+    .hero-subtitle {
+        font-size: 0.875rem;
+    }
+
+    .hero-badges {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    /* Logo más pequeño */
+    .logo-image {
+        height: 35px;
+    }
+
+    /* Búsqueda más compacta */
+    .search-section {
+        padding: 16px;
+        margin-bottom: 20px;
+    }
+
+    .search-input {
+        font-size: 16px; /* Previene zoom en iOS */
+        padding: 12px 12px 12px 44px;
+    }
+
+    .search-btn {
+        padding: 12px 16px;
+        font-size: 0.875rem;
+    }
+
+    /* Stats en una columna */
+    .stats-dashboard {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .stat-card {
+        padding: 16px;
+    }
+
+    /* Categorías scroll horizontal */
+    .categories {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none; /* Firefox */
+        gap: 8px;
+    }
+
+    .categories::-webkit-scrollbar {
+        display: none; /* Chrome, Safari */
+    }
+
+    .category-btn {
+        white-space: nowrap;
+        flex-shrink: 0;
+        padding: 8px 16px;
+        font-size: 0.875rem;
+    }
+
+    /* Product cards más compactas */
+    .product-card {
+        padding: 16px;
+    }
+
+    .product-header h3 {
+        font-size: 1rem;
+    }
+
+    /* Precios apilados */
+    .price-item {
+        padding: 12px;
+    }
+
+    .store-name {
+        font-size: 0.875rem;
+    }
+
+    .price {
+        font-size: 1.25rem;
+    }
+
+    .price-date {
+        font-size: 0.75rem;
+    }
+
+    /* Botones más grandes para touch */
+    .btn-visit-store {
+        padding: 12px 20px;
+        font-size: 0.875rem;
+        min-height: 44px; /* iOS touch target */
+    }
+
+    .btn-history {
+        padding: 10px 16px;
+        font-size: 0.875rem;
+        min-height: 44px;
+    }
+
+    /* Footer más compacto */
+    .footer {
+        padding: 32px 0 24px;
+    }
+
+    .footer-content {
+        grid-template-columns: 1fr;
+        gap: 24px;
+    }
+
+    .footer-section h3 {
+        font-size: 1.125rem;
+    }
+
+    .affiliate-disclosure {
+        font-size: 0.75rem;
+        padding: 12px;
+    }
+
+    /* Section headers */
+    .section-title {
+        font-size: 1.25rem;
+    }
+
+    .sort-select {
+        font-size: 0.875rem;
+        padding: 8px 32px 8px 12px;
     }
 }
 
