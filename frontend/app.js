@@ -18,6 +18,120 @@ const API_URL = (() => {
 
 console.log('🌐 API URL configurada:', API_URL);
 
+// ===== SISTEMA DE TOAST NOTIFICATIONS =====
+const ToastManager = {
+    container: null,
+
+    // Inicializar el contenedor de toasts
+    init() {
+        if (!this.container) {
+            this.container = document.createElement('div');
+            this.container.className = 'toast-container';
+            document.body.appendChild(this.container);
+        }
+    },
+
+    // Crear y mostrar un toast
+    show(options) {
+        this.init();
+
+        const {
+            type = 'info',           // 'success', 'error', 'warning', 'info'
+            title,
+            message,
+            duration = 5000,         // ms (0 = no auto-close)
+            closable = true
+        } = options;
+
+        // Iconos según el tipo
+        const icons = {
+            success: '✓',
+            error: '✕',
+            warning: '⚠',
+            info: 'ℹ'
+        };
+
+        // Crear el toast
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type} toast-enter`;
+
+        toast.innerHTML = `
+            <div class="toast-icon">${icons[type]}</div>
+            <div class="toast-content">
+                ${title ? `<div class="toast-title">${title}</div>` : ''}
+                ${message ? `<div class="toast-message">${message}</div>` : ''}
+            </div>
+            ${closable ? `
+                <button class="toast-close" aria-label="Cerrar">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            ` : ''}
+            ${duration > 0 ? `<div class="toast-progress" style="--duration: ${duration}ms;"></div>` : ''}
+        `;
+
+        // Agregar al contenedor
+        this.container.appendChild(toast);
+
+        // Auto-cerrar si tiene duración
+        let autoCloseTimeout;
+        if (duration > 0) {
+            autoCloseTimeout = setTimeout(() => {
+                this.close(toast);
+            }, duration);
+        }
+
+        // Botón de cerrar
+        if (closable) {
+            const closeBtn = toast.querySelector('.toast-close');
+            closeBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (autoCloseTimeout) clearTimeout(autoCloseTimeout);
+                this.close(toast);
+            });
+        }
+
+        // Click en el toast para cerrar
+        toast.addEventListener('click', () => {
+            if (autoCloseTimeout) clearTimeout(autoCloseTimeout);
+            this.close(toast);
+        });
+
+        return toast;
+    },
+
+    // Cerrar un toast
+    close(toast) {
+        toast.classList.remove('toast-enter');
+        toast.classList.add('toast-exit');
+
+        setTimeout(() => {
+            if (toast.parentElement) {
+                toast.parentElement.removeChild(toast);
+            }
+        }, 300); // Duración de la animación
+    },
+
+    // Atajos para tipos comunes
+    success(title, message, duration) {
+        return this.show({ type: 'success', title, message, duration });
+    },
+
+    error(title, message, duration) {
+        return this.show({ type: 'error', title, message, duration });
+    },
+
+    warning(title, message, duration) {
+        return this.show({ type: 'warning', title, message, duration });
+    },
+
+    info(title, message, duration) {
+        return this.show({ type: 'info', title, message, duration });
+    }
+};
+
 // Estado de la aplicación
 let allProducts = [];
 let currentProducts = [];
@@ -35,6 +149,11 @@ document.addEventListener('DOMContentLoaded', () => {
 async function loadStats() {
     try {
         const response = await fetch(`${API_URL}/stats`);
+
+        if (!response.ok) {
+            throw new Error(`Error ${response.status}: ${response.statusText}`);
+        }
+
         const stats = await response.json();
 
         document.getElementById('totalProducts').textContent = stats.total_products;
@@ -63,6 +182,11 @@ async function loadStats() {
         }
     } catch (error) {
         console.error('Error cargando estadísticas:', error);
+        ToastManager.error(
+            'Error de conexión',
+            'No se pudieron cargar las estadísticas. Verifica que la API esté corriendo.',
+            7000
+        );
     }
 }
 
@@ -70,6 +194,11 @@ async function loadStats() {
 async function loadCategories() {
     try {
         const response = await fetch(`${API_URL}/categories`);
+
+        if (!response.ok) {
+            throw new Error(`Error ${response.status}`);
+        }
+
         const categories = await response.json();
 
         const categoriesDiv = document.getElementById('categories');
@@ -88,6 +217,11 @@ async function loadCategories() {
         });
     } catch (error) {
         console.error('Error cargando categorías:', error);
+        ToastManager.error(
+            'Error al cargar categorías',
+            'No se pudieron obtener las categorías de productos.',
+            5000
+        );
     }
 }
 
@@ -289,6 +423,21 @@ function filterByCategory(category) {
     selectedCategory = category;
     loadCategories();
     loadProducts(category);
+
+    // Mostrar feedback
+    if (category) {
+        ToastManager.info(
+            'Filtro aplicado',
+            `Mostrando productos de categoría: ${category}`,
+            3000
+        );
+    } else {
+        ToastManager.info(
+            'Filtro removido',
+            'Mostrando todos los productos',
+            3000
+        );
+    }
 }
 
 // Buscar productos
@@ -304,12 +453,24 @@ async function searchProducts() {
 
     try {
         const response = await fetch(`${API_URL}/search?q=${encodeURIComponent(query)}`);
+
+        if (!response.ok) {
+            throw new Error(`Error ${response.status}`);
+        }
+
         const products = await response.json();
         currentProducts = products;
         await displayProducts(products);
 
-        // Si no se encontraron resultados, registrar la búsqueda
+        // Mostrar feedback al usuario
         if (products.length === 0) {
+            ToastManager.warning(
+                'Sin resultados',
+                `No encontramos productos que coincidan con "${query}". Intenta con otros términos.`,
+                6000
+            );
+
+            // Registrar la búsqueda sin resultados
             try {
                 await fetch(`${API_URL}/reports/search-not-found`, {
                     method: 'POST',
@@ -322,9 +483,20 @@ async function searchProducts() {
             } catch (error) {
                 console.error('Error registrando búsqueda sin resultados:', error);
             }
+        } else {
+            ToastManager.success(
+                'Búsqueda exitosa',
+                `Encontramos ${products.length} producto${products.length !== 1 ? 's' : ''} para "${query}"`,
+                4000
+            );
         }
     } catch (error) {
         console.error('Error buscando productos:', error);
+        ToastManager.error(
+            'Error en la búsqueda',
+            'No pudimos completar la búsqueda. Intenta nuevamente.',
+            5000
+        );
     } finally {
         showLoading(false);
     }
@@ -415,6 +587,13 @@ async function trackClick(storeName, productId) {
                 timestamp: new Date().toISOString()
             })
         });
+
+        // Mostrar feedback al usuario
+        ToastManager.info(
+            'Redirigiendo...',
+            `Te llevamos a ${storeName} para completar tu compra.`,
+            3000
+        );
 
         // Log para debugging
         console.log(`📊 Click tracked: ${storeName} - Product ${productId}`);
