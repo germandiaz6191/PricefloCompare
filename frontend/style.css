@@ -81,16 +81,75 @@ body {
     align-items: center;
     justify-content: center;
     margin-bottom: 24px;
+    width: 100%;
+    position: relative;
 }
 
-.logo-image {
-    height: 80px;
-    width: auto;
+/* Brand Logo Moderno */
+.brand-logo {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.logo-text {
+    font-size: 3.5rem;
+    font-weight: 800;
+    letter-spacing: -0.05em;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    line-height: 1;
     transition: var(--transition);
 }
 
-.logo-image:hover {
+.logo-text:hover {
     transform: scale(1.02);
+}
+
+/* "e" con gradiente especial */
+.logo-e {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: 900;
+    font-size: 1em;
+    margin-right: 2px;
+    animation: logoGlow 3s ease-in-out infinite;
+}
+
+/* "PriceFlo" principal */
+.logo-main {
+    background: linear-gradient(135deg, #0f172a 0%, #334155 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: 900;
+}
+
+/* Tagline debajo del logo */
+.logo-tagline {
+    font-size: 0.95rem;
+    color: var(--gray-600);
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    margin: 0;
+    text-transform: lowercase;
+    font-style: italic;
+}
+
+/* Animación sutil para la "e" */
+@keyframes logoGlow {
+    0%, 100% {
+        filter: brightness(1);
+        transform: translateY(0);
+    }
+    50% {
+        filter: brightness(1.15);
+        transform: translateY(-1px);
+    }
 }
 
 .reports-link {
@@ -1023,6 +1082,15 @@ a.reports-link,
         font-size: 2rem;
     }
 
+    /* Logo responsive tablet */
+    .logo-text {
+        font-size: 2.75rem;
+    }
+
+    .logo-tagline {
+        font-size: 0.875rem;
+    }
+
     .search-wrapper {
         flex-direction: column;
     }
@@ -1112,9 +1180,18 @@ a.reports-link,
         gap: 8px;
     }
 
-    /* Logo más pequeño */
-    .logo-image {
-        height: 35px;
+    /* Logo responsive móvil */
+    .logo-text {
+        font-size: 2.25rem;
+    }
+
+    .logo-tagline {
+        font-size: 0.75rem;
+        letter-spacing: 0.3px;
+    }
+
+    .logo-wrapper {
+        margin-bottom: 16px;
     }
 
     /* Búsqueda más compacta */
