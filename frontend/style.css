@@ -108,28 +108,32 @@ body {
     transform: scale(1.02);
 }
 
-/* "e" con gradiente especial */
+/* "e" con gradiente vibrante y moderno */
 .logo-e {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
     font-weight: 900;
     font-size: 1em;
     margin-right: 2px;
-    animation: logoGlow 3s ease-in-out infinite;
+    position: relative;
+    transition: var(--transition);
 }
 
-/* "PriceFlo" principal */
+/* Efecto hover en la "e" - más sutil y profesional */
+.logo-text:hover .logo-e {
+    background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+    filter: brightness(1.1);
+}
+
+/* "PriceFlo" principal - Negro sólido para mejor legibilidad */
 .logo-main {
-    background: linear-gradient(135deg, #0f172a 0%, #334155 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: var(--gray-900);
     font-weight: 900;
 }
 
-/* Tagline debajo del logo */
+/* Tagline debajo del logo - Más limpio sin italic */
 .logo-tagline {
     font-size: 0.95rem;
     color: var(--gray-600);
@@ -137,19 +141,6 @@ body {
     letter-spacing: 0.5px;
     margin: 0;
     text-transform: lowercase;
-    font-style: italic;
-}
-
-/* Animación sutil para la "e" */
-@keyframes logoGlow {
-    0%, 100% {
-        filter: brightness(1);
-        transform: translateY(0);
-    }
-    50% {
-        filter: brightness(1.15);
-        transform: translateY(-1px);
-    }
 }
 
 .reports-link {
