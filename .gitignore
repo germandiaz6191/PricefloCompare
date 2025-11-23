@@ -1,4 +1,4 @@
-# ===== PYTHON =====
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
@@ -20,68 +20,42 @@ wheels/
 .installed.cfg
 *.egg
 
-# ===== ENTORNO VIRTUAL =====
+# Virtual Environment
 venv/
 ENV/
 env/
-.venv
 
-# ===== BASE DE DATOS =====
-*.db
-*.sqlite
-*.sqlite3
-priceflocompare.db
-local.db
-staging.db
-test.db
-*.db-journal
-
-# ===== ENVIRONMENT VARIABLES =====
-.env
-.env.local
-.env.production
-.env.staging
-
-# ===== VERCEL =====
-.vercel
-.vercel.json
-
-# ===== IDEs =====
+# IDE
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
-.DS_Store
 
-# ===== LOGS =====
+# Environment variables
+.env
+.env.local
+
+# Database
+data/
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
 *.log
 logs/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
 
-# ===== SCRAPING RESULTS =====
-*_resultado.html
-*.html
-!frontend/*.html
+# OS
+.DS_Store
+Thumbs.db
 
-# ===== BACKUPS =====
-backup_*.db
-*.bak
-
-# ===== TESTING =====
-.pytest_cache/
+# Test coverage
 .coverage
 htmlcov/
-.tox/
+.pytest_cache/
 
-# ===== NODE (si usas npm) =====
-node_modules/
-package-lock.json
-yarn.lock
-
-# ===== TEMPORARY =====
-*.tmp
-*.temp
-.cache/
+# Temporary files
+last_updates.json
+temp/
+tmp/
