@@ -111,11 +111,11 @@ class IgnoreSearchRequest(BaseModel):
 
 # === ENDPOINTS ===
 
-@app.get("/")
-def root():
-    """Endpoint raíz con información de la API"""
+@app.get("/api")
+def api_info():
+    """Información de la API"""
     return {
-        "message": "PricefloCompare API",
+        "message": "ePriceFlo API",
         "version": "1.0.0",
         "endpoints": {
             "products": "/products",
@@ -340,13 +340,17 @@ def get_categories():
     Lista todas las categorías disponibles con conteo de productos
     """
     with get_db() as conn:
-        categories = conn.execute("""
+        cursor = conn.cursor()
+        cursor.execute("""
             SELECT category, COUNT(*) as count
             FROM products
             WHERE category IS NOT NULL
             GROUP BY category
             ORDER BY count DESC
-        """).fetchall()
+        """)
+
+        from database import _fetch_all
+        categories = _fetch_all(cursor)
 
         return [
             {"category": row['category'], "count": row['count']}
@@ -366,12 +370,28 @@ def search_products(
     - **limit**: Número máximo de resultados (1-100, por defecto 10)
     """
     with get_db() as conn:
-        products = conn.execute("""
-            SELECT * FROM products
-            WHERE name LIKE ?
-            ORDER BY is_frequent DESC, name ASC
-            LIMIT ?
-        """, (f"%{q}%", limit)).fetchall()
+        cursor = conn.cursor()
+        from database import _param_placeholder, _fetch_all, IS_POSTGRES
+
+        ph = _param_placeholder()
+
+        if IS_POSTGRES:
+            query = f"""
+                SELECT * FROM products
+                WHERE name ILIKE {ph}
+                ORDER BY is_frequent DESC, name ASC
+                LIMIT {ph}
+            """
+        else:
+            query = f"""
+                SELECT * FROM products
+                WHERE name LIKE {ph}
+                ORDER BY is_frequent DESC, name ASC
+                LIMIT {ph}
+            """
+
+        cursor.execute(query, (f"%{q}%", limit))
+        products = _fetch_all(cursor)
 
         return [dict(row) for row in products]
 
@@ -452,9 +472,9 @@ frontend_path = os.path.join(os.path.dirname(__file__), "frontend")
 if os.path.exists(frontend_path):
     app.mount("/static", StaticFiles(directory=frontend_path), name="static")
 
-    @app.get("/app")
+    @app.get("/")
     async def serve_frontend():
-        """Sirve el frontend HTML"""
+        """Sirve el frontend HTML en la raíz"""
         return FileResponse(os.path.join(frontend_path, "index.html"))
 
     @app.get("/reports")
