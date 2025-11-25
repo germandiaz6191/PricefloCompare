@@ -10,17 +10,42 @@
 
 const ANALYTICS_CONFIG = {
     // Activar/desactivar analytics
-    enabled: true,  // Cambiar a true cuando tengas tu ID
-    
-    // Tu Measurement ID de Google Analytics 4
-    measurementId: 'G-XXXXXXXXXX',  // TU ID AQUÍ (formato: G-XXXXXXXXXX)
-    
-    // Deshabilitar en estos dominios
+    enabled: true,  // ✅ Activado
+
+    // Measurement IDs por ambiente
+    measurementIds: {
+        production: 'G-T57BY0R646',      // 🔴 Producción (epriceflo.com)
+        qa: 'G-XXXXXXXXXX',               // 🟡 QA/Staging (configurar si tienes ambiente de pruebas)
+        development: null                 // 🟢 Desarrollo (localhost) - NO medir
+    },
+
+    // Detectar ambiente automáticamente
+    getEnvironment: function() {
+        const hostname = window.location.hostname;
+
+        if (hostname === 'epriceflo.com' || hostname === 'www.epriceflo.com') {
+            return 'production';
+        } else if (hostname.includes('railway.app') || hostname.includes('qa') || hostname.includes('staging')) {
+            return 'qa';
+        } else {
+            return 'development';  // localhost, 127.0.0.1, etc
+        }
+    },
+
+    // Obtener Measurement ID para el ambiente actual
+    getMeasurementId: function() {
+        const env = this.getEnvironment();
+        const id = this.measurementIds[env];
+        console.log(`📊 Analytics: Ambiente = ${env}, ID = ${id || 'no configurado'}`);
+        return id;
+    },
+
+    // Deshabilitar en estos dominios (redundante, pero por seguridad)
     disabledDomains: [
         'localhost',
         '127.0.0.1'
     ],
-    
+
     // Eventos personalizados que rastrear
     trackEvents: {
         productView: true,      // Ver producto
@@ -38,18 +63,19 @@ function isAnalyticsEnabled() {
         console.log('📊 Analytics: Deshabilitado en configuración');
         return false;
     }
-    
+
     const hostname = window.location.hostname;
     if (ANALYTICS_CONFIG.disabledDomains.includes(hostname)) {
-        console.log(`📊 Analytics: Deshabilitado en ${hostname}`);
+        console.log(`📊 Analytics: Deshabilitado en ${hostname} (localhost/dev)`);
         return false;
     }
-    
-    if (ANALYTICS_CONFIG.measurementId === 'G-XXXXXXXXXX') {
-        console.log('📊 Analytics: Measurement ID no configurado');
+
+    const measurementId = ANALYTICS_CONFIG.getMeasurementId();
+    if (!measurementId || measurementId === 'G-XXXXXXXXXX') {
+        console.log('📊 Analytics: Measurement ID no configurado para este ambiente');
         return false;
     }
-    
+
     return true;
 }
 
@@ -58,27 +84,35 @@ function isAnalyticsEnabled() {
  */
 function loadGoogleAnalytics() {
     if (!isAnalyticsEnabled()) {
+        console.log('📊 Analytics: No se cargará (ambiente de desarrollo o ID no configurado)');
         return;
     }
-    
+
+    const measurementId = ANALYTICS_CONFIG.getMeasurementId();
+    const environment = ANALYTICS_CONFIG.getEnvironment();
+
     // Cargar gtag.js
     const script = document.createElement('script');
     script.async = true;
-    script.src = `https://www.googletagmanager.com/gtag/js?id=${ANALYTICS_CONFIG.measurementId}`;
+    script.src = `https://www.googletagmanager.com/gtag/js?id=${measurementId}`;
     document.head.appendChild(script);
-    
+
     // Inicializar gtag
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
     window.gtag = gtag;
-    
+
     gtag('js', new Date());
-    gtag('config', ANALYTICS_CONFIG.measurementId, {
+    gtag('config', measurementId, {
         send_page_view: true,
-        cookie_flags: 'SameSite=None;Secure'
+        cookie_flags: 'SameSite=None;Secure',
+        // Agregar metadata de ambiente
+        page_location: window.location.href,
+        page_title: document.title,
+        environment: environment
     });
-    
-    console.log('✅ Analytics: Google Analytics 4 cargado');
+
+    console.log(`✅ Analytics: GA4 cargado en ambiente "${environment}" con ID: ${measurementId}`);
 }
 
 /**
