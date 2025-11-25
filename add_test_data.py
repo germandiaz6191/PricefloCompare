@@ -70,8 +70,9 @@ def scrape_and_save():
             total_attempts += 1
             sitio_name = sitio_cfg['sitio']
 
-            # Buscar el store_id correspondiente
-            store_id = store_name_to_id.get(sitio_name.lower())
+            # Buscar el store_id correspondiente (normalizar para buscar)
+            sitio_normalized = sitio_name.lower().replace('é', 'e').strip()
+            store_id = store_name_to_id.get(sitio_normalized)
             if not store_id:
                 print(f"⚠️  {sitio_name}: Tienda no encontrada en BD (saltando)")
                 continue
