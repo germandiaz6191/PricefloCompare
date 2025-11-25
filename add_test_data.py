@@ -1,13 +1,17 @@
 """
-Script para agregar datos de prueba a la BD
-Útil si el scraping da 403
+Script para agregar productos y scrapear precios en tiempo real
+Combina creación de productos + scraping en una sola ejecución
 """
 from database import add_price_snapshot, get_products, get_stores
+from scrapers.generic_scrapers import load_sites_config, scrape_price
 from datetime import datetime
+import os
 
-def add_test_data():
-    """Agrega datos de prueba a la base de datos"""
-
+def scrape_and_save():
+    """
+    Obtiene productos de la BD y scrapea precios reales de todas las tiendas.
+    Mucho más eficiente que correr add_test_data.py y scraper.py por separado.
+    """
     products = get_products()
     stores = get_stores()
 
@@ -15,73 +19,107 @@ def add_test_data():
         print("❌ Primero ejecuta: python migrate_to_db.py")
         return
 
-    print("📝 Agregando datos de prueba...")
+    # Verificar que el scraping esté habilitado o estemos en local
+    enable_scraping = os.getenv("ENABLE_SCRAPING", "false").lower() == "true"
+    is_local = not os.getenv("DATABASE_URL", "").startswith(("postgresql://", "postgres://"))
 
-    # Mapeo de store_id a nombre de tienda
-    store_names = {store['id']: store['name'] for store in stores}
+    if not enable_scraping and not is_local:
+        print("⚠️  ENABLE_SCRAPING está desactivado en producción")
+        print("💡 Si quieres scrapear desde local hacia producción, asegúrate de:")
+        print("   1. Tener DATABASE_URL configurado con PostgreSQL de producción")
+        print("   2. Ejecutar este script localmente")
+        return
 
-    # Función para generar URL realista según la tienda
-    def generate_store_url(product_id, store_id, title):
-        store_name = store_names.get(store_id, "")
-        # Crear slug del producto (minúsculas, sin espacios)
-        slug = title.lower().replace(" ", "-").replace("kg", "kg").replace("l", "l")
-        # Remover caracteres especiales
-        import re
-        slug = re.sub(r'[^a-z0-9-]', '', slug)
+    print("🔍 Iniciando scraping de precios reales...")
+    print(f"📦 Productos encontrados: {len(products)}")
+    print(f"🏪 Tiendas encontradas: {len(stores)}")
+    print("")
 
-        if "Éxito" in store_name or "exito" in store_name.lower():
-            # URL estilo Éxito: https://www.exito.com/{slug}/p
-            return f"https://www.exito.com/{slug}/p"
-        elif "Homecenter" in store_name or "homecenter" in store_name.lower():
-            # URL estilo Homecenter: https://www.homecenter.com.co/homecenter-co/product/{id}/{slug}
-            return f"https://www.homecenter.com.co/homecenter-co/product/{product_id * 100000}/{slug}"
-        elif "Falabella" in store_name or "falabella" in store_name.lower():
-            # URL estilo Falabella: https://www.falabella.com.co/falabella-co/product/{id}/{slug}
-            return f"https://www.falabella.com.co/falabella-co/product/{product_id * 100000}/{slug}"
-        else:
-            # URL genérica para otras tiendas
-            return f"https://{store_name.lower().replace(' ', '')}.com.co/{slug}"
+    # Cargar configuración de sitios
+    try:
+        sitios_config = load_sites_config()
+    except Exception as e:
+        print(f"❌ Error cargando config de sitios: {e}")
+        return
 
-    # Datos de ejemplo (precios ficticios)
-    test_prices = [
-        # Lavadora LG 17Kg
-        {"product_id": 1, "store_id": 1, "price": 1299000, "title": "Lavadora LG 17Kg Carga Superior Silver"},
-        {"product_id": 1, "store_id": 2, "price": 1349000, "title": "Lavadora LG 17 Kg Automática"},
+    # Mapeo de nombres de tiendas a IDs
+    store_name_to_id = {}
+    for store in stores:
+        # Normalizar nombre (Éxito → exito, Falabella → falabella)
+        normalized = store['name'].lower().replace('é', 'e').strip()
+        store_name_to_id[normalized] = store['id']
+        # También guardar el nombre original
+        store_name_to_id[store['name']] = store['id']
 
-        # Nevera Samsung 300L
-        {"product_id": 2, "store_id": 1, "price": 1899000, "title": "Nevera Samsung 300L No Frost Plateada"},
-        {"product_id": 2, "store_id": 2, "price": 1849000, "title": "Refrigerador Samsung 300 Litros"},
+    total_saved = 0
+    total_attempts = 0
 
-        # iPhone 16
-        {"product_id": 3, "store_id": 1, "price": 4299000, "title": "iPhone 16 128GB Negro"},
-        {"product_id": 3, "store_id": 2, "price": 4399000, "title": "Apple iPhone 16 128GB Black"},
-    ]
+    # Para cada producto, scrapear en todas las tiendas
+    for product in products:
+        product_name = product['name']
+        product_category = product.get('category')
+        product_id = product['id']
 
-    for data in test_prices:
-        try:
-            # Generar URL realista
-            product_url = generate_store_url(
-                data['product_id'],
-                data['store_id'],
-                data['title']
-            )
+        print(f"\n{'='*60}")
+        print(f"📱 Producto: {product_name}")
+        print(f"   Categoría: {product_category or 'Sin categoría'}")
+        print(f"{'='*60}")
 
-            add_price_snapshot(
-                product_id=data['product_id'],
-                store_id=data['store_id'],
-                price=data['price'],
-                title=data['title'],
-                url=product_url,
-                relevance_score=95
-            )
-            print(f"✅ Agregado: {data['title']} - ${data['price']:,.0f}")
-            print(f"   🔗 URL: {product_url}")
-        except Exception as e:
-            print(f"❌ Error: {e}")
+        # Scrapear en cada sitio configurado
+        for sitio_cfg in sitios_config:
+            total_attempts += 1
+            sitio_name = sitio_cfg['sitio']
 
-    print("\n✨ Datos de prueba agregados")
-    print("💡 Ahora prueba: http://localhost:8000/stats")
-    print("💡 O ejecuta: python view_db.py")
+            # Buscar el store_id correspondiente
+            store_id = store_name_to_id.get(sitio_name.lower())
+            if not store_id:
+                print(f"⚠️  {sitio_name}: Tienda no encontrada en BD (saltando)")
+                continue
+
+            print(f"   🔍 Scrapeando en {sitio_name}...", end=" ")
+
+            try:
+                # Llamar al scraper
+                result = scrape_price(sitio_cfg, product_name, product_category)
+
+                if result and result.get('price'):
+                    title = result.get('title', product_name)
+                    price = result['price']
+                    url = result.get('url', '')
+
+                    # Guardar en BD
+                    add_price_snapshot(
+                        product_id=product_id,
+                        store_id=store_id,
+                        price=price,
+                        title=title,
+                        url=url,
+                        relevance_score=95
+                    )
+
+                    total_saved += 1
+                    print(f"✅ ${price:,.0f}")
+                    print(f"      📝 {title}")
+                    if url:
+                        print(f"      🔗 {url[:80]}...")
+                else:
+                    print(f"❌ No encontrado")
+
+            except Exception as e:
+                print(f"❌ Error: {str(e)[:50]}")
+
+    # Resumen final
+    print(f"\n{'='*60}")
+    print(f"✨ Scraping completado")
+    print(f"{'='*60}")
+    print(f"📊 Intentos totales: {total_attempts}")
+    print(f"✅ Precios guardados: {total_saved}")
+    print(f"❌ No encontrados: {total_attempts - total_saved}")
+    print(f"💡 Tasa de éxito: {(total_saved/total_attempts*100):.1f}%" if total_attempts > 0 else "0%")
+    print("")
+    print("💡 Ahora prueba:")
+    print("   http://localhost:8000/stats")
+    print("   O ejecuta: python view_db.py")
 
 if __name__ == "__main__":
-    add_test_data()
+    scrape_and_save()
