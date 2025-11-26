@@ -78,10 +78,17 @@ def migrate_products():
 
 def verify_migration():
     """Verifica que la migración fue exitosa"""
+    from database import _fetch_all, _fetch_one
+
     with get_db() as conn:
+        cursor = conn.cursor()
+
         # Contar registros
-        stores_count = conn.execute("SELECT COUNT(*) as count FROM stores").fetchone()['count']
-        products_count = conn.execute("SELECT COUNT(*) as count FROM products").fetchone()['count']
+        cursor.execute("SELECT COUNT(*) as count FROM stores")
+        stores_count = _fetch_one(cursor)['count']
+
+        cursor.execute("SELECT COUNT(*) as count FROM products")
+        products_count = _fetch_one(cursor)['count']
 
         print("\n" + "="*50)
         print("📊 RESUMEN DE MIGRACIÓN")
@@ -91,27 +98,30 @@ def verify_migration():
 
         # Mostrar tiendas
         print("\n🏪 Tiendas:")
-        stores = conn.execute("SELECT name, fetch_method FROM stores ORDER BY name").fetchall()
+        cursor.execute("SELECT name, fetch_method FROM stores ORDER BY name")
+        stores = _fetch_all(cursor)
         for store in stores:
             print(f"  - {store['name']} ({store['fetch_method']})")
 
         # Mostrar productos por categoría
         print("\n📦 Productos por categoría:")
-        categories = conn.execute("""
+        cursor.execute("""
             SELECT category, COUNT(*) as count
             FROM products
             WHERE category IS NOT NULL
             GROUP BY category
             ORDER BY count DESC
-        """).fetchall()
+        """)
+        categories = _fetch_all(cursor)
 
         for cat in categories:
             print(f"  - {cat['category']}: {cat['count']} productos")
 
         # Productos sin categoría
-        no_cat = conn.execute("""
+        cursor.execute("""
             SELECT COUNT(*) as count FROM products WHERE category IS NULL
-        """).fetchone()['count']
+        """)
+        no_cat = _fetch_one(cursor)['count']
         if no_cat > 0:
             print(f"  - Sin categoría: {no_cat} productos")
 
