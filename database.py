@@ -167,11 +167,24 @@ def init_db():
         print("✅ Base de datos inicializada")
 
 
+def _serialize_value(value):
+    """Convierte valores especiales (datetime, etc) a formatos serializables"""
+    from datetime import datetime, date
+    if isinstance(value, (datetime, date)):
+        return value.isoformat()
+    return value
+
+
 def _fetch_all(cursor) -> List[Dict]:
     """Convierte resultados de cursor a lista de dicts (compatible con ambas BDs)"""
     if IS_POSTGRES:
         columns = [desc[0] for desc in cursor.description]
-        return [dict(zip(columns, row)) for row in cursor.fetchall()]
+        rows = []
+        for row in cursor.fetchall():
+            # Convertir datetime a strings para compatibilidad con Pydantic
+            serialized_row = {col: _serialize_value(val) for col, val in zip(columns, row)}
+            rows.append(serialized_row)
+        return rows
     else:
         return [dict(row) for row in cursor.fetchall()]
 
@@ -182,7 +195,8 @@ def _fetch_one(cursor) -> Optional[Dict]:
         row = cursor.fetchone()
         if row:
             columns = [desc[0] for desc in cursor.description]
-            return dict(zip(columns, row))
+            # Convertir datetime a strings para compatibilidad con Pydantic
+            return {col: _serialize_value(val) for col, val in zip(columns, row)}
         return None
     else:
         row = cursor.fetchone()
