@@ -7,6 +7,13 @@ from scrapers.generic_scrapers import load_sites_config, scrape_price
 from datetime import datetime
 import os
 
+# Cargar variables de entorno desde .env
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass  # dotenv no instalado, usar variables de sistema
+
 def scrape_and_save():
     """
     Obtiene productos de la BD y scrapea precios reales de todas las tiendas.
