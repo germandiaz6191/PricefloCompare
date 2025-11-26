@@ -192,6 +192,30 @@
                     <div class="ad-container ad-sidebar" id="ad-sidebar"></div>
                 </aside>
             </div>
+
+            <!-- Pagination Controls -->
+            <div class="pagination-container" id="paginationContainer" style="display: none;">
+                <div class="pagination-info">
+                    <span id="paginationInfo">Mostrando 1-20 de 100 productos</span>
+                </div>
+                <div class="pagination-controls">
+                    <button class="pagination-btn" id="prevPageBtn" onclick="changePage(-1)">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="15 18 9 12 15 6"></polyline>
+                        </svg>
+                        Anterior
+                    </button>
+                    <div class="pagination-pages" id="paginationPages">
+                        <!-- Se generan dinámicamente -->
+                    </div>
+                    <button class="pagination-btn" id="nextPageBtn" onclick="changePage(1)">
+                        Siguiente
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="9 18 15 12 9 6"></polyline>
+                        </svg>
+                    </button>
+                </div>
+            </div>
         </div>
 
         <!-- Loading -->

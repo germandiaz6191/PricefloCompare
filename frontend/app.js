@@ -568,6 +568,12 @@ let allProducts = [];
 let currentProducts = [];
 let selectedCategory = null;
 
+// Estado de paginación
+let currentPage = 1;
+let totalPages = 1;
+let totalProducts = 0;
+let pageSize = 20;
+
 // Inicializar la aplicación
 document.addEventListener('DOMContentLoaded', () => {
     console.log('🚀 PricefloCompare iniciado');
@@ -654,23 +660,41 @@ async function loadCategories() {
     }
 }
 
-// Cargar productos
-async function loadProducts(category = null) {
+// Cargar productos con paginación
+async function loadProducts(category = null, page = 1) {
     showLoading(true);
 
     try {
-        let url = `${API_URL}/products`;
+        // Construir URL con parámetros de paginación
+        let url = `${API_URL}/products?page=${page}&page_size=${pageSize}`;
         if (category) {
-            url += `?category=${encodeURIComponent(category)}`;
+            url += `&category=${encodeURIComponent(category)}`;
         }
 
-        allProducts = await FetchManager.get(url, {
+        // Obtener datos paginados
+        const response = await FetchManager.get(url, {
             timeout: 15000,
             showToast: true
         });
 
-        currentProducts = [...allProducts];
+        // Actualizar estado de paginación
+        currentPage = response.page;
+        totalPages = response.total_pages;
+        totalProducts = response.total;
+        allProducts = response.items;
+        currentProducts = [...response.items];
+
+        // Mostrar productos y controles de paginación
         await displayProducts(currentProducts);
+        updatePaginationControls();
+
+        // Scroll suave al inicio de los productos
+        if (page > 1) {
+            document.querySelector('.products-section').scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+            });
+        }
     } catch (error) {
         console.error('Error cargando productos:', error);
         document.getElementById('productsGrid').innerHTML = `
@@ -683,9 +707,124 @@ async function loadProducts(category = null) {
                 </button>
             </div>
         `;
+        document.getElementById('paginationContainer').style.display = 'none';
     } finally {
         showLoading(false);
     }
+}
+
+// Cambiar de página (relativo: -1 para anterior, +1 para siguiente)
+function changePage(delta) {
+    const newPage = currentPage + delta;
+    if (newPage >= 1 && newPage <= totalPages) {
+        loadProducts(selectedCategory, newPage);
+    }
+}
+
+// Ir a página específica
+function goToPage(page) {
+    if (page >= 1 && page <= totalPages && page !== currentPage) {
+        loadProducts(selectedCategory, page);
+    }
+}
+
+// Actualizar controles de paginación
+function updatePaginationControls() {
+    const container = document.getElementById('paginationContainer');
+    const prevBtn = document.getElementById('prevPageBtn');
+    const nextBtn = document.getElementById('nextPageBtn');
+    const pagesContainer = document.getElementById('paginationPages');
+    const infoSpan = document.getElementById('paginationInfo');
+
+    // Mostrar/ocultar contenedor
+    if (totalPages <= 1) {
+        container.style.display = 'none';
+        return;
+    }
+    container.style.display = 'flex';
+
+    // Actualizar botones anterior/siguiente
+    prevBtn.disabled = currentPage === 1;
+    nextBtn.disabled = currentPage === totalPages;
+
+    // Actualizar información
+    const start = (currentPage - 1) * pageSize + 1;
+    const end = Math.min(currentPage * pageSize, totalProducts);
+    infoSpan.textContent = `Mostrando ${start}-${end} de ${totalProducts} productos`;
+
+    // Generar números de página
+    pagesContainer.innerHTML = '';
+    const pages = generatePageNumbers(currentPage, totalPages);
+
+    pages.forEach(page => {
+        if (page === '...') {
+            const ellipsis = document.createElement('span');
+            ellipsis.className = 'pagination-ellipsis';
+            ellipsis.textContent = '...';
+            pagesContainer.appendChild(ellipsis);
+        } else {
+            const pageBtn = document.createElement('button');
+            pageBtn.className = 'pagination-page';
+            if (page === currentPage) {
+                pageBtn.classList.add('active');
+            }
+            pageBtn.textContent = page;
+            pageBtn.onclick = () => goToPage(page);
+            pagesContainer.appendChild(pageBtn);
+        }
+    });
+}
+
+// Generar array de números de página con elipsis
+function generatePageNumbers(current, total) {
+    const pages = [];
+    const delta = 2; // Cuántas páginas mostrar alrededor de la actual
+
+    if (total <= 7) {
+        // Si hay pocas páginas, mostrar todas
+        for (let i = 1; i <= total; i++) {
+            pages.push(i);
+        }
+    } else {
+        // Siempre mostrar primera página
+        pages.push(1);
+
+        // Calcular rango alrededor de la página actual
+        let start = Math.max(2, current - delta);
+        let end = Math.min(total - 1, current + delta);
+
+        // Ajustar si estamos cerca del inicio
+        if (current <= delta + 2) {
+            end = Math.min(5, total - 1);
+            start = 2;
+        }
+
+        // Ajustar si estamos cerca del final
+        if (current >= total - delta - 1) {
+            start = Math.max(total - 4, 2);
+            end = total - 1;
+        }
+
+        // Agregar elipsis izquierda si es necesario
+        if (start > 2) {
+            pages.push('...');
+        }
+
+        // Agregar páginas del rango
+        for (let i = start; i <= end; i++) {
+            pages.push(i);
+        }
+
+        // Agregar elipsis derecha si es necesario
+        if (end < total - 1) {
+            pages.push('...');
+        }
+
+        // Siempre mostrar última página
+        pages.push(total);
+    }
+
+    return pages;
 }
 
 // Mostrar skeletons de carga
