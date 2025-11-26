@@ -2,17 +2,19 @@
 Script para agregar productos y scrapear precios en tiempo real
 Combina creación de productos + scraping en una sola ejecución
 """
-from database import add_price_snapshot, get_products, get_stores
-from scrapers.generic_scrapers import load_sites_config, scrape_price
-from datetime import datetime
+# IMPORTANTE: Cargar .env ANTES de importar database
+# porque database.py lee DATABASE_URL al importarse
 import os
-
-# Cargar variables de entorno desde .env
 try:
     from dotenv import load_dotenv
     load_dotenv()
 except ImportError:
     pass  # dotenv no instalado, usar variables de sistema
+
+# Ahora sí importar módulos que dependen de variables de entorno
+from database import add_price_snapshot, get_products, get_stores
+from scrapers.generic_scrapers import load_sites_config, scrape_price
+from datetime import datetime
 
 def scrape_and_save():
     """
