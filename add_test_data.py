@@ -83,9 +83,9 @@ def scrape_and_save():
                 # Llamar al scraper
                 result = scrape_price(sitio_cfg, product_name, product_category)
 
-                if result and result.get('price'):
+                if result and result.get('price') is not None:
                     title = result.get('title', product_name)
-                    price = result['price']
+                    price = result['price']  # Ya es un integer
                     url = result.get('url', '')
 
                     # Guardar en BD
@@ -99,7 +99,8 @@ def scrape_and_save():
                     )
 
                     total_saved += 1
-                    print(f"✅ ${price:,.0f}")
+                    # Formatear precio para mostrar en consola
+                    print(f"✅ ${price:,}")
                     print(f"      📝 {title}")
                     if url:
                         print(f"      🔗 {url[:80]}...")

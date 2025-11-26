@@ -115,29 +115,27 @@ def extract_key_terms(text: str) -> set:
     return key_terms
 
 
-def format_price(price_str: str) -> str:
+def format_price(price_str: str) -> int:
     """
-    Formatea un string de precio para presentación consistente.
+    Extrae el precio como número entero desde un string.
 
     Args:
         price_str: String con el precio (puede incluir símbolos, espacios, etc.)
 
     Returns:
-        Precio formateado como "$X,XXX,XXX"
+        Precio como entero, o None si no se pudo extraer
     """
     if not price_str:
-        return "Precio no disponible"
+        return None
 
     # Extraer solo números
-    numbers = re.sub(r'[^\d]', '', price_str)
+    numbers = re.sub(r'[^\d]', '', str(price_str))
 
     if not numbers:
-        return price_str  # Devolver original si no hay números
+        return None
 
     try:
-        # Convertir a entero y formatear con separadores de miles
-        price_int = int(numbers)
-        formatted = f"${price_int:,}"
-        return formatted
+        # Convertir a entero
+        return int(numbers)
     except ValueError:
-        return price_str
+        return None
