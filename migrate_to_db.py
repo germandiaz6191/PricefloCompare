@@ -1,9 +1,19 @@
 """
-Script de migración de configuraciones JSON a SQLite
+Script de migración de configuraciones JSON a base de datos
 Migra config_sitios.json y config_productos.json a la base de datos
+Soporta SQLite (local) y PostgreSQL (producción)
 """
+# IMPORTANTE: Cargar .env ANTES de importar database
+# porque database.py lee DATABASE_URL al importarse
 import json
 import os
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass  # dotenv no instalado, usar variables de sistema
+
+# Ahora sí importar módulos que dependen de variables de entorno
 from database import add_store, add_product, get_db
 
 def migrate_stores():
@@ -110,7 +120,9 @@ def verify_migration():
 
 def main():
     """Ejecuta la migración completa"""
-    print("🚀 Iniciando migración de JSON a SQLite...")
+    # Detectar qué base de datos se está usando
+    db_type = "PostgreSQL" if os.getenv("DATABASE_URL", "").startswith(("postgresql://", "postgres://")) else "SQLite"
+    print(f"🚀 Iniciando migración de JSON a {db_type}...")
     print()
 
     # Migrar tiendas
@@ -128,8 +140,14 @@ def main():
     verify_migration()
 
     print("\n✨ Migración completada exitosamente!")
-    print(f"\n💡 Base de datos creada en: data/prices.db")
-    print("💡 Ahora puedes ejecutar: python job_scraper.py")
+
+    # Mensaje según la base de datos usada
+    if db_type == "PostgreSQL":
+        print(f"\n💡 Datos migrados a PostgreSQL (producción)")
+        print("💡 Ahora puedes ejecutar: python add_test_data.py")
+    else:
+        print(f"\n💡 Base de datos creada en: data/prices.db")
+        print("💡 Ahora puedes ejecutar: python add_test_data.py")
 
 
 if __name__ == "__main__":
