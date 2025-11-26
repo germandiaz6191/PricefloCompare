@@ -13,6 +13,7 @@ import os
 
 from database import (
     get_products,
+    count_products,
     get_product_by_id,
     get_latest_prices,
     get_price_history,
@@ -109,6 +110,15 @@ class IgnoreSearchRequest(BaseModel):
     ignored: bool = True
 
 
+class PaginatedProducts(BaseModel):
+    """Respuesta paginada de productos"""
+    items: List[Product]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+
+
 # === ENDPOINTS ===
 
 @app.get("/api")
@@ -144,19 +154,43 @@ def health_check():
         raise HTTPException(status_code=503, detail=f"Service unhealthy: {str(e)}")
 
 
-@app.get("/products", response_model=List[Product])
+@app.get("/products", response_model=PaginatedProducts)
 def list_products(
     category: Optional[str] = Query(None, description="Filtrar por categoría"),
-    limit: Optional[int] = Query(None, description="Limitar número de resultados")
+    page: int = Query(1, ge=1, description="Número de página (inicia en 1)"),
+    page_size: int = Query(20, ge=1, le=100, description="Productos por página (máximo 100)")
 ):
     """
-    Lista todos los productos
+    Lista productos con paginación
 
     - **category**: Filtrar por categoría (opcional)
-    - **limit**: Número máximo de productos a retornar (opcional)
+    - **page**: Número de página (por defecto: 1)
+    - **page_size**: Productos por página (por defecto: 20, máximo: 100)
+
+    Retorna:
+    - **items**: Lista de productos de la página actual
+    - **total**: Total de productos (con filtros aplicados)
+    - **page**: Página actual
+    - **page_size**: Productos por página
+    - **total_pages**: Total de páginas disponibles
     """
-    products = get_products(limit=limit, category=category)
-    return products
+    # Calcular offset
+    offset = (page - 1) * page_size
+
+    # Obtener productos y total
+    products = get_products(limit=page_size, offset=offset, category=category)
+    total = count_products(category=category)
+
+    # Calcular total de páginas
+    total_pages = (total + page_size - 1) // page_size if total > 0 else 0
+
+    return {
+        "items": products,
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "total_pages": total_pages
+    }
 
 
 @app.get("/products/{product_id}", response_model=ProductWithPrices)

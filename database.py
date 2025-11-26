@@ -210,8 +210,24 @@ def _param_placeholder(index: int = 0) -> str:
 
 # === FUNCIONES DE PRODUCTOS ===
 
-def get_products(limit: Optional[int] = None, category: Optional[str] = None) -> List[Dict]:
-    """Obtiene lista de productos"""
+def count_products(category: Optional[str] = None) -> int:
+    """Cuenta el total de productos (con filtro opcional por categoría)"""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        query = "SELECT COUNT(*) as total FROM products WHERE 1=1"
+        params = []
+
+        if category:
+            query += f" AND category = {_param_placeholder()}"
+            params.append(category)
+
+        cursor.execute(query, params)
+        result = _fetch_one(cursor)
+        return result['total'] if result else 0
+
+
+def get_products(limit: Optional[int] = None, offset: Optional[int] = None, category: Optional[str] = None) -> List[Dict]:
+    """Obtiene lista de productos con paginación"""
     with get_db() as conn:
         cursor = conn.cursor()
         query = "SELECT * FROM products WHERE 1=1"
@@ -225,6 +241,9 @@ def get_products(limit: Optional[int] = None, category: Optional[str] = None) ->
 
         if limit:
             query += f" LIMIT {limit}"
+
+        if offset:
+            query += f" OFFSET {offset}"
 
         cursor.execute(query, params)
         return _fetch_all(cursor)
