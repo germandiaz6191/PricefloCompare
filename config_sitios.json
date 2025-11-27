@@ -5,6 +5,7 @@
     "fetch_method": "graphql",
     "requires_url_variables": true,
     "base_product_url": "https://www.exito.com",
+    "url_suffix": "/p",
     "params": {
       "operationName": "SearchQuery",
       "variables":{

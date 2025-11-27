@@ -146,10 +146,21 @@ def scrape_graphql(sitio_config, product_name, product_category=None):
                 if link_text:
                     # Construir URL completa
                     base_url = sitio_config.get("base_product_url", "")
+                    url_suffix = sitio_config.get("url_suffix", "")  # Sufijo opcional (ej: "/p" para Éxito)
+
                     if link_text.startswith('http'):
                         product_url = link_text
                     else:
-                        product_url = f"{base_url}/{link_text}" if not link_text.startswith('/') else f"{base_url}{link_text}"
+                        # Construir URL base
+                        if link_text.startswith('/'):
+                            product_url = f"{base_url}{link_text}"
+                        else:
+                            product_url = f"{base_url}/{link_text}"
+
+                        # Agregar sufijo si existe
+                        if url_suffix:
+                            product_url = f"{product_url}{url_suffix}"
+
                     print(f"[{sitio_config['sitio']}] URL del producto: {product_url}")
 
             best_result = {
