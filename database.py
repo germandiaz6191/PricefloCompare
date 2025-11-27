@@ -262,11 +262,22 @@ def get_product_by_id(product_id: int) -> Optional[Dict]:
 
 def add_product(name: str, category: Optional[str] = None,
                 is_frequent: bool = False, update_interval_hours: int = 12) -> int:
-    """Agrega un nuevo producto"""
+    """Agrega un nuevo producto (o retorna el existente si ya existe)"""
     with get_db() as conn:
         cursor = conn.cursor()
         ph = _param_placeholder()
 
+        # Primero verificar si el producto ya existe
+        cursor.execute(f"""
+            SELECT id FROM products WHERE name = {ph}
+        """, (name,))
+        existing = _fetch_one(cursor)
+
+        if existing:
+            # Producto ya existe, retornar su ID
+            return existing['id']
+
+        # No existe, insertar nuevo
         if IS_POSTGRES:
             cursor.execute(f"""
                 INSERT INTO products (name, category, is_frequent, update_interval_hours)
