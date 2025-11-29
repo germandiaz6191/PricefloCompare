@@ -636,20 +636,71 @@ async function loadCategories() {
             showToast: false
         });
 
-        const categoriesDiv = document.getElementById('categories');
-        categoriesDiv.innerHTML = `
-            <button class="category-btn ${!selectedCategory ? 'active' : ''}" onclick="filterByCategory(null)">
-                Todas
-            </button>
-        `;
+        // Ordenar categorías por count descendente (más buscadas primero)
+        const sortedCategories = categories.sort((a, b) => b.count - a.count);
 
-        categories.forEach(cat => {
+        const categoriesDiv = document.getElementById('categories');
+        categoriesDiv.innerHTML = '';
+
+        // Botón "Todas"
+        const allBtn = document.createElement('button');
+        allBtn.className = `category-btn ${!selectedCategory ? 'active' : ''}`;
+        allBtn.textContent = 'Todas';
+        allBtn.onclick = () => filterByCategory(null);
+        categoriesDiv.appendChild(allBtn);
+
+        // Mostrar las primeras 4 categorías más buscadas
+        const TOP_CATEGORIES = 4;
+        const topCategories = sortedCategories.slice(0, TOP_CATEGORIES);
+        const remainingCategories = sortedCategories.slice(TOP_CATEGORIES);
+
+        topCategories.forEach(cat => {
             const btn = document.createElement('button');
             btn.className = `category-btn ${selectedCategory === cat.category ? 'active' : ''}`;
             btn.textContent = `${cat.category} (${cat.count})`;
             btn.onclick = () => filterByCategory(cat.category);
             categoriesDiv.appendChild(btn);
         });
+
+        // Si hay más categorías, mostrar dropdown "+X más"
+        if (remainingCategories.length > 0) {
+            const moreContainer = document.createElement('div');
+            moreContainer.className = 'category-more-container';
+
+            const moreBtn = document.createElement('button');
+            moreBtn.className = 'category-btn category-more-btn';
+            moreBtn.innerHTML = `+${remainingCategories.length} más <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M2.5 4.5L6 8L9.5 4.5"/></svg>`;
+            moreBtn.onclick = (e) => {
+                e.stopPropagation();
+                const dropdown = moreContainer.querySelector('.category-dropdown');
+                dropdown.classList.toggle('show');
+            };
+
+            const dropdown = document.createElement('div');
+            dropdown.className = 'category-dropdown';
+
+            remainingCategories.forEach(cat => {
+                const item = document.createElement('button');
+                item.className = `category-dropdown-item ${selectedCategory === cat.category ? 'active' : ''}`;
+                item.textContent = `${cat.category} (${cat.count})`;
+                item.onclick = () => {
+                    filterByCategory(cat.category);
+                    dropdown.classList.remove('show');
+                };
+                dropdown.appendChild(item);
+            });
+
+            moreContainer.appendChild(moreBtn);
+            moreContainer.appendChild(dropdown);
+            categoriesDiv.appendChild(moreContainer);
+
+            // Cerrar dropdown al hacer clic fuera
+            document.addEventListener('click', (e) => {
+                if (!moreContainer.contains(e.target)) {
+                    dropdown.classList.remove('show');
+                }
+            });
+        }
     } catch (error) {
         console.error('Error cargando categorías:', error);
         ToastManager.error(
