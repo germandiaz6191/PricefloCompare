@@ -23,7 +23,12 @@ from database import (
     record_search_not_found,
     get_search_not_found_report,
     toggle_ignore_search_not_found,
-    delete_search_not_found
+    delete_search_not_found,
+    get_countries,
+    get_country,
+    get_stores_by_country,
+    get_products_by_country,
+    count_products_by_country
 )
 
 # Crear app FastAPI
@@ -61,6 +66,19 @@ class Store(BaseModel):
     url: str
     fetch_method: str
     active: int
+    country_code: Optional[str] = None
+    currency: Optional[str] = None
+    country_name: Optional[str] = None
+    flag_emoji: Optional[str] = None
+
+
+class Country(BaseModel):
+    code: str
+    name: str
+    currency: str
+    locale: str
+    flag_emoji: Optional[str] = None
+    active: bool = True
 
 
 class PriceSnapshot(BaseModel):
@@ -157,6 +175,7 @@ def health_check():
 @app.get("/products", response_model=PaginatedProducts)
 def list_products(
     category: Optional[str] = Query(None, description="Filtrar por categoría"),
+    country: Optional[str] = Query(None, description="Filtrar por código de país (ej: 'CO')"),
     page: int = Query(1, ge=1, description="Número de página (inicia en 1)"),
     page_size: int = Query(20, ge=1, le=100, description="Productos por página (máximo 100)")
 ):
@@ -164,6 +183,7 @@ def list_products(
     Lista productos con paginación
 
     - **category**: Filtrar por categoría (opcional)
+    - **country**: Filtrar por código de país (opcional, ej: 'CO')
     - **page**: Número de página (por defecto: 1)
     - **page_size**: Productos por página (por defecto: 20, máximo: 100)
 
@@ -177,9 +197,25 @@ def list_products(
     # Calcular offset
     offset = (page - 1) * page_size
 
-    # Obtener productos y total
-    products = get_products(limit=page_size, offset=offset, category=category)
-    total = count_products(category=category)
+    # Si se especifica país, usar funciones de filtrado por país
+    if country:
+        country = country.upper()
+        # Verificar que el país existe
+        country_info = get_country(country)
+        if not country_info:
+            raise HTTPException(status_code=404, detail=f"País '{country}' no encontrado")
+
+        products = get_products_by_country(
+            country_code=country,
+            limit=page_size,
+            offset=offset,
+            category=category
+        )
+        total = count_products_by_country(country_code=country, category=category)
+    else:
+        # Sin filtro de país, usar funciones normales
+        products = get_products(limit=page_size, offset=offset, category=category)
+        total = count_products(category=category)
 
     # Calcular total de páginas
     total_pages = (total + page_size - 1) // page_size if total > 0 else 0
@@ -369,21 +405,45 @@ def get_statistics():
 
 
 @app.get("/categories")
-def get_categories():
+def get_categories(country: Optional[str] = Query(None, description="Filtrar por código de país (ej: 'CO')")):
     """
     Lista todas las categorías disponibles con conteo de productos
+
+    - **country**: Filtrar por código de país (opcional, ej: 'CO')
     """
     with get_db() as conn:
         cursor = conn.cursor()
-        cursor.execute("""
-            SELECT category, COUNT(*) as count
-            FROM products
-            WHERE category IS NOT NULL
-            GROUP BY category
-            ORDER BY count DESC
-        """)
+        from database import _fetch_all, _param_placeholder
 
-        from database import _fetch_all
+        ph = _param_placeholder()
+
+        if country:
+            country = country.upper()
+            # Verificar que el país existe
+            country_info = get_country(country)
+            if not country_info:
+                raise HTTPException(status_code=404, detail=f"País '{country}' no encontrado")
+
+            # Contar categorías solo de productos disponibles en ese país
+            cursor.execute(f"""
+                SELECT p.category, COUNT(DISTINCT p.id) as count
+                FROM products p
+                INNER JOIN price_snapshots ps ON ps.product_id = p.id
+                INNER JOIN stores s ON ps.store_id = s.id
+                WHERE p.category IS NOT NULL
+                  AND s.country_code = {ph}
+                GROUP BY p.category
+                ORDER BY count DESC
+            """, (country,))
+        else:
+            cursor.execute("""
+                SELECT category, COUNT(*) as count
+                FROM products
+                WHERE category IS NOT NULL
+                GROUP BY category
+                ORDER BY count DESC
+            """)
+
         categories = _fetch_all(cursor)
 
         return [
@@ -497,6 +557,77 @@ def delete_not_found_entry(search_id: int):
         raise HTTPException(status_code=404, detail="Búsqueda no encontrada")
 
     return {"message": "Búsqueda eliminada", "id": search_id}
+
+
+# === ENDPOINTS DE PAÍSES ===
+
+@app.get("/countries", response_model=List[Country])
+def list_countries(active_only: bool = Query(True, description="Solo países activos")):
+    """
+    Obtiene la lista de países disponibles
+
+    - **active_only**: Si True, solo devuelve países activos (default: True)
+    """
+    countries = get_countries(active_only=active_only)
+    return [Country(**c) for c in countries]
+
+
+@app.get("/countries/{country_code}", response_model=Country)
+def get_country_info(country_code: str):
+    """
+    Obtiene información de un país específico
+
+    - **country_code**: Código ISO del país (ej: 'CO', 'MX', 'CL')
+    """
+    country = get_country(country_code.upper())
+    if not country:
+        raise HTTPException(status_code=404, detail="País no encontrado")
+
+    return Country(**country)
+
+
+@app.get("/stores", response_model=List[Store])
+def list_stores_filtered(
+    country: Optional[str] = Query(None, description="Filtrar por código de país (ej: 'CO')"),
+    active_only: bool = Query(True, description="Solo tiendas activas")
+):
+    """
+    Obtiene la lista de tiendas, opcionalmente filtradas por país
+
+    - **country**: Código de país para filtrar (opcional)
+    - **active_only**: Si True, solo devuelve tiendas activas (default: True)
+    """
+    if country:
+        country = country.upper()
+        # Verificar que el país existe
+        country_info = get_country(country)
+        if not country_info:
+            raise HTTPException(status_code=404, detail=f"País '{country}' no encontrado")
+
+        stores = get_stores_by_country(country_code=country, active_only=active_only)
+    else:
+        stores = get_stores_by_country(country_code=None, active_only=active_only)
+
+    return [Store(**s) for s in stores]
+
+
+@app.get("/detect-country")
+async def detect_country_by_ip():
+    """
+    Intenta detectar el país del usuario basándose en su IP
+
+    Nota: Funcionalidad básica. En producción usar servicio como ipapi.co o geoip2
+    """
+    # Por ahora retornar Colombia por defecto
+    # En producción, usar la IP del cliente para detectar el país real
+    return {
+        "country_code": "CO",
+        "country_name": "Colombia",
+        "currency": "COP",
+        "flag_emoji": "🇨🇴",
+        "detected_by": "default",
+        "message": "País detectado por defecto. Puedes cambiarlo en el selector."
+    }
 
 
 # === FRONTEND ESTÁTICO ===

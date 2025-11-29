@@ -567,6 +567,8 @@ const UrgencyBadges = {
 let allProducts = [];
 let currentProducts = [];
 let selectedCategory = null;
+let selectedCountry = null;  // Código de país seleccionado
+let availableCountries = [];  // Lista de países disponibles
 
 // Estado de paginación
 let currentPage = 1;
@@ -575,15 +577,128 @@ let totalProducts = 0;
 let pageSize = 20;
 
 // Inicializar la aplicación
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     console.log('🚀 PricefloCompare iniciado');
 
     // Inicializar autocomplete
     AutocompleteManager.init();
 
+    // Inicializar selector de país
+    await initializeCountrySelector();
+
     loadStats();
     loadCategories();
     loadProducts();
+});
+
+// ===== FUNCIONES DE SELECTOR DE PAÍS =====
+
+async function initializeCountrySelector() {
+    try {
+        // Cargar países disponibles
+        availableCountries = await FetchManager.get(`${API_URL}/countries`, {
+            timeout: 5000,
+            showToast: false
+        });
+
+        // Intentar detectar país automáticamente
+        const savedCountry = localStorage.getItem('selected_country');
+        if (savedCountry) {
+            // Usar país guardado
+            selectedCountry = savedCountry;
+            console.log('🌍 País cargado desde localStorage:', selectedCountry);
+        } else {
+            // Auto-detectar país
+            try {
+                const detected = await FetchManager.get(`${API_URL}/detect-country`, {
+                    timeout: 3000,
+                    showToast: false
+                });
+                selectedCountry = detected.country_code;
+                console.log('🌍 País auto-detectado:', selectedCountry);
+            } catch (e) {
+                // Si falla la detección, usar el primer país activo
+                const firstActive = availableCountries.find(c => c.active);
+                selectedCountry = firstActive ? firstActive.code : 'CO';
+                console.log('🌍 País por defecto:', selectedCountry);
+            }
+        }
+
+        // Actualizar UI
+        updateCountryUI();
+        renderCountryDropdown();
+
+    } catch (error) {
+        console.error('Error inicializando selector de país:', error);
+        selectedCountry = 'CO';  // Fallback a Colombia
+        updateCountryUI();
+    }
+}
+
+function updateCountryUI() {
+    const country = availableCountries.find(c => c.code === selectedCountry);
+    if (country) {
+        document.getElementById('selectedCountryFlag').textContent = country.flag_emoji || '🌍';
+        document.getElementById('selectedCountryName').textContent = country.name;
+    }
+}
+
+function renderCountryDropdown() {
+    const dropdown = document.getElementById('countryDropdown');
+    dropdown.innerHTML = '';
+
+    availableCountries.forEach(country => {
+        const item = document.createElement('button');
+        item.className = `country-dropdown-item ${country.code === selectedCountry ? 'active' : ''}`;
+        item.innerHTML = `
+            <span class="country-flag">${country.flag_emoji || '🌍'}</span>
+            <span>${country.name}</span>
+        `;
+        item.onclick = () => selectCountry(country.code);
+        dropdown.appendChild(item);
+    });
+}
+
+function toggleCountryDropdown() {
+    const dropdown = document.getElementById('countryDropdown');
+    dropdown.classList.toggle('show');
+}
+
+function selectCountry(countryCode) {
+    if (countryCode === selectedCountry) {
+        toggleCountryDropdown();
+        return;
+    }
+
+    selectedCountry = countryCode;
+    localStorage.setItem('selected_country', countryCode);
+
+    // Actualizar UI
+    updateCountryUI();
+    renderCountryDropdown();
+    toggleCountryDropdown();
+
+    // Recargar datos con el nuevo país
+    selectedCategory = null;  // Reset category filter
+    currentPage = 1;  // Reset pagination
+    loadCategories();
+    loadProducts();
+
+    ToastManager.success(
+        'País cambiado',
+        `Ahora viendo productos de ${availableCountries.find(c => c.code === countryCode).name}`,
+        3000
+    );
+}
+
+// Cerrar dropdown al hacer clic fuera
+document.addEventListener('click', (e) => {
+    const dropdown = document.getElementById('countryDropdown');
+    const selectorWrapper = document.querySelector('.country-selector-wrapper');
+
+    if (dropdown && selectorWrapper && !selectorWrapper.contains(e.target)) {
+        dropdown.classList.remove('show');
+    }
 });
 
 // Cargar estadísticas
@@ -631,7 +746,13 @@ async function loadStats() {
 // Cargar categorías
 async function loadCategories() {
     try {
-        const categories = await FetchManager.get(`${API_URL}/categories`, {
+        // Construir URL con filtro de país si está seleccionado
+        let url = `${API_URL}/categories`;
+        if (selectedCountry) {
+            url += `?country=${selectedCountry}`;
+        }
+
+        const categories = await FetchManager.get(url, {
             timeout: 5000,
             showToast: false
         });
@@ -720,6 +841,9 @@ async function loadProducts(category = null, page = 1) {
         let url = `${API_URL}/products?page=${page}&page_size=${pageSize}`;
         if (category) {
             url += `&category=${encodeURIComponent(category)}`;
+        }
+        if (selectedCountry) {
+            url += `&country=${selectedCountry}`;
         }
 
         // Obtener datos paginados

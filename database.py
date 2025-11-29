@@ -639,5 +639,144 @@ def delete_search_not_found(search_id: int) -> bool:
         return cursor.rowcount > 0
 
 
+# === FUNCIONES DE PAÍSES ===
+
+def get_countries(active_only: bool = True) -> List[Dict]:
+    """Obtiene lista de países disponibles"""
+    with get_db() as conn:
+        cursor = conn.cursor()
+
+        query = "SELECT code, name, currency, locale, flag_emoji, active FROM countries WHERE 1=1"
+
+        if active_only:
+            active_value = True if IS_POSTGRES else 1
+            query += f" AND active = {active_value}"
+
+        query += " ORDER BY name"
+
+        cursor.execute(query)
+        return _fetch_all(cursor)
+
+
+def get_country(country_code: str) -> Optional[Dict]:
+    """Obtiene un país específico por su código"""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        ph = _param_placeholder()
+
+        cursor.execute(f"""
+            SELECT code, name, currency, locale, flag_emoji, active
+            FROM countries
+            WHERE code = {ph}
+        """, (country_code,))
+
+        return _fetch_one(cursor)
+
+
+def get_stores_by_country(country_code: Optional[str] = None, active_only: bool = True) -> List[Dict]:
+    """Obtiene tiendas filtradas por país"""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        ph = _param_placeholder()
+
+        query = """
+            SELECT s.id, s.name, s.url, s.fetch_method, s.config,
+                   s.active, s.country_code, s.currency,
+                   c.name as country_name, c.flag_emoji
+            FROM stores s
+            LEFT JOIN countries c ON s.country_code = c.code
+            WHERE 1=1
+        """
+
+        params = []
+
+        if country_code:
+            query += f" AND s.country_code = {ph}"
+            params.append(country_code)
+
+        if active_only:
+            active_value = True if IS_POSTGRES else 1
+            query += f" AND s.active = {active_value}"
+
+        query += " ORDER BY s.name"
+
+        cursor.execute(query, params)
+        return _fetch_all(cursor)
+
+
+def update_store_country(store_id: int, country_code: str, currency: str) -> bool:
+    """Actualiza el país y moneda de una tienda"""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        ph = _param_placeholder()
+
+        cursor.execute(f"""
+            UPDATE stores
+            SET country_code = {ph}, currency = {ph}
+            WHERE id = {ph}
+        """, (country_code, currency, store_id))
+
+        conn.commit()
+        return cursor.rowcount > 0
+
+
+def get_products_by_country(country_code: str, limit: Optional[int] = None,
+                           offset: Optional[int] = None,
+                           category: Optional[str] = None) -> List[Dict]:
+    """Obtiene productos disponibles en un país específico"""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        ph = _param_placeholder()
+
+        query = f"""
+            SELECT DISTINCT p.*
+            FROM products p
+            INNER JOIN price_snapshots ps ON ps.product_id = p.id
+            INNER JOIN stores s ON ps.store_id = s.id
+            WHERE s.country_code = {ph}
+        """
+
+        params = [country_code]
+
+        if category:
+            query += f" AND p.category = {ph}"
+            params.append(category)
+
+        query += " ORDER BY p.name"
+
+        if limit:
+            query += f" LIMIT {limit}"
+        if offset:
+            query += f" OFFSET {offset}"
+
+        cursor.execute(query, params)
+        return _fetch_all(cursor)
+
+
+def count_products_by_country(country_code: str, category: Optional[str] = None) -> int:
+    """Cuenta productos disponibles en un país específico"""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        ph = _param_placeholder()
+
+        query = f"""
+            SELECT COUNT(DISTINCT p.id) as total
+            FROM products p
+            INNER JOIN price_snapshots ps ON ps.product_id = p.id
+            INNER JOIN stores s ON ps.store_id = s.id
+            WHERE s.country_code = {ph}
+        """
+
+        params = [country_code]
+
+        if category:
+            query += f" AND p.category = {ph}"
+            params.append(category)
+
+        cursor.execute(query, params)
+        result = _fetch_one(cursor)
+        return result['total'] if result else 0
+
+
 # Inicializar BD al importar el módulo
 init_db()

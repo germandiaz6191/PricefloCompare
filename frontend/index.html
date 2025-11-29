@@ -74,8 +74,23 @@
                         <p class="logo-tagline">Compara precios en segundos</p>
                     </div>
                 </div>
+
+                <!-- Country Selector -->
+                <div class="country-selector-wrapper">
+                    <button class="country-selector" id="countrySelectorBtn" onclick="toggleCountryDropdown()">
+                        <span class="country-flag" id="selectedCountryFlag">🇨🇴</span>
+                        <span class="country-name" id="selectedCountryName">Colombia</span>
+                        <svg class="country-arrow" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                            <path d="M4 6l4 4 4-4"/>
+                        </svg>
+                    </button>
+                    <div class="country-dropdown" id="countryDropdown">
+                        <!-- Se llena dinámicamente -->
+                    </div>
+                </div>
+
                 <p class="hero-subtitle">
-                    Comparador profesional de precios para las principales tiendas de Colombia
+                    Comparador profesional de precios para las principales tiendas
                 </p>
                 <div class="hero-badges">
                     <span class="badge badge-live">

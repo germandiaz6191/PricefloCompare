@@ -1,6 +1,8 @@
 [
   {
     "sitio": "Éxito",
+    "country_code": "CO",
+    "currency": "COP",
     "url": "https://www.exito.com/api/graphql",
     "fetch_method": "graphql",
     "requires_url_variables": true,
@@ -28,6 +30,8 @@
   },
   {
     "sitio": "Homecenter",
+    "country_code": "CO",
+    "currency": "COP",
     "url": "https://www.homecenter.com.co/homecenter-co/search",
     "fetch_method": "html",
     "base_product_url": "https://www.homecenter.com.co",
