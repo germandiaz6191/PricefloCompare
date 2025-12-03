@@ -1,0 +1,138 @@
+[
+  {
+    "sitio": "Éxito",
+    "country_code": "CO",
+    "currency": "COP",
+    "url": "https://www.exito.com/api/graphql",
+    "fetch_method": "graphql",
+    "requires_url_variables": true,
+    "base_product_url": "https://www.exito.com",
+    "url_suffix": "/p",
+    "params": {
+      "operationName": "SearchQuery",
+      "variables":{
+        "first":16,
+        "after":"0",
+        "sort":"price_asc",
+        "term":"{product_name}",
+        "selectedFacets":[
+          {"key":"category-2", "value":"{product_category}"},
+          {"key":"channel", "value":"{\"salesChannel\":\"1\",\"regionId\":\"\"}"},
+          {"key":"locale","value":"es-CO"}
+        ]
+      }
+    },
+    "title_xpath": "data.search.products.edges[0].node.items[0].name",
+    "price_xpath": "data.search.products.edges[0].node.items[0].sellers[1].commertialOffer.PriceWithoutDiscount",
+    "url_xpath": "data.search.products.edges[0].node.linkText"
+  },
+  {
+    "sitio": "Homecenter",
+    "country_code": "CO",
+    "currency": "COP",
+    "url": "https://www.homecenter.com.co/homecenter-co/search",
+    "fetch_method": "html",
+    "base_product_url": "https://www.homecenter.com.co",
+    "params": {
+      "Ntt": "{product_name}",
+      "currentpage": "1",
+      "sortBy": "derived.price.event.search.10,asc"
+    },
+    "title_xpath": "//*[@id='title-pdp-link']/h2",
+    "price_xpath": "//*[@id='__next']/div[2]/div[1]/div[4]/div[3]/div[1]/div[1]/div[3]/div[1]/div/div[6]/div/div[4]/div/div",
+    "url_xpath": "//*[@id='title-pdp-link']/@href"
+  },
+  {
+    "sitio": "Ktronix",
+    "country_code": "CO",
+    "currency": "COP",
+    "url": "https://www.ktronix.com/api/graphql",
+    "fetch_method": "graphql",
+    "requires_url_variables": true,
+    "base_product_url": "https://www.ktronix.com",
+    "url_suffix": "/p",
+    "params": {
+      "operationName": "SearchQuery",
+      "variables": {
+        "first": 16,
+        "after": "0",
+        "sort": "price_asc",
+        "term": "{product_name}",
+        "selectedFacets": [
+          {
+            "key": "channel",
+            "value": "{\"salesChannel\":\"1\",\"regionId\":\"\"}"
+          },
+          {
+            "key": "locale",
+            "value": "es-CO"
+          }
+        ]
+      }
+    },
+    "title_xpath": "data.search.products.edges[0].node.items[0].name",
+    "price_xpath": "data.search.products.edges[0].node.items[0].sellers[0].commertialOffer.Price",
+    "url_xpath": "data.search.products.edges[0].node.linkText",
+    "nota": "⚠️ PENDIENTE DE PRUEBA - Configuración tentativa basada en Grupo Éxito"
+  },
+  {
+    "sitio": "Alkosto",
+    "country_code": "CO",
+    "currency": "COP",
+    "url": "https://www.alkosto.com/_v/segment/graphql/v1",
+    "fetch_method": "graphql",
+    "requires_url_variables": true,
+    "base_product_url": "https://www.alkosto.com",
+    "params": {
+      "operationName": "productSearchV3",
+      "variables": {
+        "hideUnavailableItems": false,
+        "skusFilter": "ALL",
+        "simulationBehavior": "default",
+        "installmentCriteria": "MAX_WITHOUT_INTEREST",
+        "productOriginVtex": false,
+        "map": "ft",
+        "query": "{product_name}",
+        "orderBy": "OrderByPriceDESC",
+        "from": 0,
+        "to": 9,
+        "selectedFacets": []
+      }
+    },
+    "title_xpath": "data.productSearch.products[0].productName",
+    "price_xpath": "data.productSearch.products[0].priceRange.sellingPrice.highPrice",
+    "url_xpath": "data.productSearch.products[0].linkText",
+    "nota": "⚠️ REQUIERE INVESTIGACIÓN - Endpoint y estructura tentativa, necesita verificación manual"
+  },
+  {
+    "sitio": "Falabella",
+    "country_code": "CO",
+    "currency": "COP",
+    "url": "https://www.falabella.com.co/s/browse/v1/search",
+    "fetch_method": "rest",
+    "base_product_url": "https://www.falabella.com.co",
+    "params": {
+      "Ntt": "{product_name}",
+      "page": 1
+    },
+    "title_xpath": "results[0].displayName",
+    "price_xpath": "results[0].prices[0].price[0]",
+    "url_xpath": "results[0].url",
+    "nota": "⚠️ REQUIERE INVESTIGACIÓN - Estructura tentativa, necesita verificación manual"
+  },
+  {
+    "sitio": "Olimpica",
+    "country_code": "CO",
+    "currency": "COP",
+    "url": "https://www.olimpica.com/api/catalog_system/pub/products/search",
+    "fetch_method": "rest",
+    "base_product_url": "https://www.olimpica.com",
+    "params": {
+      "ft": "{product_name}"
+    },
+    "title_xpath": "[0].productName",
+    "price_xpath": "[0].items[0].sellers[0].commertialOffer.Price",
+    "url_xpath": "[0].link",
+    "nota": "⚠️ REQUIERE INVESTIGACIÓN - Si usa VTEX, esta estructura podría funcionar"
+  }
+]
