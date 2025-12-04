@@ -583,8 +583,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Inicializar autocomplete
     AutocompleteManager.init();
 
+    // TODO: Descomentar después de ejecutar migrate_countries.py en producción
     // Inicializar selector de país
-    await initializeCountrySelector();
+    // await initializeCountrySelector();
 
     loadStats();
     loadCategories();
@@ -748,9 +749,10 @@ async function loadCategories() {
     try {
         // Construir URL con filtro de país si está seleccionado
         let url = `${API_URL}/categories`;
-        if (selectedCountry) {
-            url += `?country=${selectedCountry}`;
-        }
+        // TODO: Descomentar después de ejecutar migrate_countries.py en producción
+        // if (selectedCountry) {
+        //     url += `?country=${selectedCountry}`;
+        // }
 
         const categories = await FetchManager.get(url, {
             timeout: 5000,
@@ -842,9 +844,10 @@ async function loadProducts(category = null, page = 1) {
         if (category) {
             url += `&category=${encodeURIComponent(category)}`;
         }
-        if (selectedCountry) {
-            url += `&country=${selectedCountry}`;
-        }
+        // TODO: Descomentar después de ejecutar migrate_countries.py en producción
+        // if (selectedCountry) {
+        //     url += `&country=${selectedCountry}`;
+        // }
 
         // Obtener datos paginados
         const response = await FetchManager.get(url, {
