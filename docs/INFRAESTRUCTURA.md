@@ -12,7 +12,7 @@ Documento técnico que detalla la infraestructura completa del proyecto ePriceFl
 | **🚀 Backend/API** | Railway | Backend hosting |
 | **🗄️ Base de Datos** | Supabase | PostgreSQL managed |
 | **💻 Frontend** | Railway (Static) | Servido junto con la API |
-| **📊 Analytics** | Google Analytics 4 | ID: `G-T57BY0R646` ✅ Activo |
+| **📊 Analytics** | Google Analytics 4 | ID: `G-MZJTMX8YJW` ✅ Activo |
 
 ---
 
@@ -255,7 +255,8 @@ ENVIRONMENT=development
 
 **Estado**: ✅ **Ya configurado y funcionando**
 
-- **ID de Producción**: `G-T57BY0R646`
+- **ID de Producción**: `G-MZJTMX8YJW`
+- **Cuenta**: germandiaz6191@gmail.com
 - **Archivo de configuración**: `frontend/analytics.js`
 - **Incluido en**: `frontend/index.html` (línea 271)
 - **Activación**: Automática cuando `hostname === 'epriceflo.com'`

@@ -14,7 +14,7 @@ const ANALYTICS_CONFIG = {
 
     // Measurement IDs por ambiente
     measurementIds: {
-        production: 'G-T57BY0R646',      // 🔴 Producción (epriceflo.com)
+        production: 'G-MZJTMX8YJW',      // 🔴 Producción (epriceflo.com)
         qa: 'G-XXXXXXXXXX',               // 🟡 QA/Staging (configurar si tienes ambiente de pruebas)
         development: null                 // 🟢 Desarrollo (localhost) - NO medir
     },
