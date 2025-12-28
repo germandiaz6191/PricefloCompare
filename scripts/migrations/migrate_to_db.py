@@ -3,6 +3,14 @@ Script de migración de configuraciones JSON a base de datos
 Migra config_sitios.json y config_productos.json a la base de datos
 Soporta SQLite (local) y PostgreSQL (producción)
 """
+# IMPORTANTE: Agregar directorio raíz al path para imports
+import os
+import sys
+
+# Obtener directorio raíz del proyecto (2 niveles arriba: scripts/X/ -> scripts/ -> raíz)
+script_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(os.path.dirname(script_dir))
+sys.path.insert(0, project_root)
 # IMPORTANTE: Cargar .env ANTES de importar database
 # porque database.py lee DATABASE_URL al importarse
 import json

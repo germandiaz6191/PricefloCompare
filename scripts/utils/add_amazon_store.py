@@ -7,6 +7,14 @@ Actívala cuando:
 2. Obtengas tu código de afiliado
 3. Actualices la BD con tu código
 """
+# IMPORTANTE: Agregar directorio raíz al path para imports
+import os
+import sys
+
+# Obtener directorio raíz del proyecto (2 niveles arriba: scripts/X/ -> scripts/ -> raíz)
+script_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(os.path.dirname(script_dir))
+sys.path.insert(0, project_root)
 from database import get_db
 import json
 

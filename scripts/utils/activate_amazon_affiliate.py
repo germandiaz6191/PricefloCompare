@@ -5,6 +5,14 @@ Uso: python activate_amazon_affiliate.py TU_CODIGO_AQUI
 
 Ejemplo: python activate_amazon_affiliate.py priceflo-20
 """
+# IMPORTANTE: Agregar directorio raíz al path para imports
+import os
+import sys
+
+# Obtener directorio raíz del proyecto (2 niveles arriba: scripts/X/ -> scripts/ -> raíz)
+script_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(os.path.dirname(script_dir))
+sys.path.insert(0, project_root)
 import sys
 from database import get_db
 

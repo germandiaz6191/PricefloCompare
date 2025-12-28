@@ -2,9 +2,16 @@
 Script para agregar productos y scrapear precios en tiempo real
 Combina creación de productos + scraping en una sola ejecución
 """
-# IMPORTANTE: Cargar .env ANTES de importar database
-# porque database.py lee DATABASE_URL al importarse
+# IMPORTANTE: Agregar directorio raíz al path para imports
 import os
+import sys
+
+# Obtener directorio raíz del proyecto (2 niveles arriba de este script)
+script_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(os.path.dirname(script_dir))
+sys.path.insert(0, project_root)
+
+# Cargar .env ANTES de importar database
 try:
     from dotenv import load_dotenv
     load_dotenv()

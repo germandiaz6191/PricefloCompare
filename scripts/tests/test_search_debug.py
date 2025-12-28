@@ -1,6 +1,14 @@
 """
 Script de debug para probar búsquedas en Éxito y ver qué resultados retorna
 """
+# IMPORTANTE: Agregar directorio raíz al path para imports
+import os
+import sys
+
+# Obtener directorio raíz del proyecto (2 niveles arriba: scripts/X/ -> scripts/ -> raíz)
+script_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(os.path.dirname(script_dir))
+sys.path.insert(0, project_root)
 import json
 from scrapers.graphql_scraper import scrape_graphql
 
