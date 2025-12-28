@@ -12,6 +12,7 @@ Documento técnico que detalla la infraestructura completa del proyecto ePriceFl
 | **🚀 Backend/API** | Railway | Backend hosting |
 | **🗄️ Base de Datos** | Supabase | PostgreSQL managed |
 | **💻 Frontend** | Railway (Static) | Servido junto con la API |
+| **📊 Analytics** | Google Analytics 4 | ID: `G-T57BY0R646` ✅ Activo |
 
 ---
 
