@@ -252,9 +252,35 @@ ENVIRONMENT=development
 
 ### Google Analytics 4
 
+**Estado**: ✅ **Ya configurado y funcionando**
+
 - **ID de Producción**: `G-T57BY0R646`
-- **Configurado en**: `frontend/analytics.js`
+- **Archivo de configuración**: `frontend/analytics.js`
+- **Incluido en**: `frontend/index.html` (línea 271)
 - **Activación**: Automática cuando `hostname === 'epriceflo.com'`
+- **Dashboard**: https://analytics.google.com
+
+#### Eventos que se rastrean automáticamente:
+
+1. **Page views**: Cada visita a una página
+2. **view_item**: Cuando un usuario ve un producto
+3. **price_comparison**: Cuando compara precios de productos
+4. **store_click**: Cuando hace click en un enlace de tienda
+5. **search**: Cuando busca productos
+
+#### Verificar que funciona:
+
+1. Ve a Google Analytics → Informes → Tiempo real
+2. Visita `https://epriceflo.com`
+3. Deberías verte como usuario activo
+
+#### Documentación completa:
+
+Ver: [`docs/ANALYTICS_Y_ADSENSE.md`](ANALYTICS_Y_ADSENSE.md) para:
+- Guía completa de configuración
+- Cuándo y cómo aplicar a Google AdSense
+- Mejores posiciones para anuncios
+- Plan de monetización paso a paso
 
 ### Railway Logs
 

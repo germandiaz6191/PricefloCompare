@@ -255,9 +255,12 @@ ENVIRONMENT=production
 
 ## 📚 Documentación Adicional
 
-- [Cómo Agregar Tiendas](docs/COMO_AGREGAR_TIENDAS.md)
-- [Guía de Monetización](docs/MONETIZATION_GUIDE.md)
-- [Documentación de BD](docs/README_DB.md)
+- [🏗️ Infraestructura](docs/INFRAESTRUCTURA.md) - Railway, Supabase, Dominio
+- [🏪 Cómo Agregar Tiendas](docs/COMO_AGREGAR_TIENDAS.md)
+- [📊 Analytics y AdSense](docs/ANALYTICS_Y_ADSENSE.md) - Google Analytics, Monetización
+- [🔬 Análisis de Scrapers](docs/ANALISIS_SCRAPERS.md) - Detalles técnicos
+- [📦 Productos Populares](docs/PRODUCTOS_POPULARES.md) - Investigación de mercado
+- [🗄️ Base de Datos](docs/README_DB.md)
 
 ---
 
