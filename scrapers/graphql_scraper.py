@@ -1,6 +1,30 @@
 import requests
 import json
+import os
 from scrapers.text_utils import calculate_relevance_score, format_price
+
+# Cargar mapeo de categorías
+_category_mapping = None
+
+def load_category_mapping():
+    """Carga el mapeo de categorías desde category_mapping.json"""
+    global _category_mapping
+    if _category_mapping is None:
+        mapping_file = os.path.join(os.path.dirname(__file__), "..", "category_mapping.json")
+        try:
+            with open(mapping_file, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                _category_mapping = data.get("mappings", {})
+        except FileNotFoundError:
+            _category_mapping = {}  # Sin mapeo, usar categoría original
+    return _category_mapping
+
+def map_category(category):
+    """Mapea una categoría de ePriceFlo a categoría de Éxito"""
+    if not category:
+        return None
+    mapping = load_category_mapping()
+    return mapping.get(category, category.lower())  # Default: lowercase
 
 def scrape_graphql(sitio_config, product_name, product_category=None):
     """
@@ -11,6 +35,11 @@ def scrape_graphql(sitio_config, product_name, product_category=None):
         product_name: Nombre del producto a buscar
         product_category: Categoría opcional para filtrar (ej: "celulares", "electrodomesticos")
     """
+    # Mapear categoría si existe
+    if product_category:
+        product_category = map_category(product_category)
+        print(f"[Categoría mapeada]: {product_category}")
+
     # Construir payload reemplazando {product_name} y {product_category}
     payload = sitio_config.get("params", {})
     payload_str = json.dumps(payload)
