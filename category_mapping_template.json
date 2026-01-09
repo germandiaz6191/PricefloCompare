@@ -1,0 +1,83 @@
+{
+  "comment": "Mapeo de categorías ePriceFlo a filtros de Éxito",
+  "instructions": {
+    "1": "Busca en Éxito.com un producto de cada categoría",
+    "2": "Abre DevTools (F12) -> Network -> Buscar 'SearchQuery'",
+    "3": "Copia el valor del filtro selectedFacets con key 'category-X'",
+    "4": "Verifica/actualiza los valores pre-completados abajo"
+  },
+  "mappings": {
+    "Audio": {
+      "exito_level": "category-3",
+      "exito_value": "audifonos",
+      "example_product": "AirPods 3",
+      "notes": "Verificar si usa 'audifonos' o 'audio'"
+    },
+    "Celulares": {
+      "exito_level": "category-3",
+      "exito_value": "celulares",
+      "example_product": "Samsung Galaxy S24",
+      "notes": "Probablemente 'celulares' o 'smartphones'"
+    },
+    "celulares": {
+      "exito_level": "category-3",
+      "exito_value": "celulares",
+      "example_product": "iPhone 16",
+      "notes": "Mismo que Celulares (mayúscula)"
+    },
+    "Computadores": {
+      "exito_level": "category-3",
+      "exito_value": "portatiles",
+      "example_product": "MacBook Air M2",
+      "notes": "Verificar: 'portatiles', 'computadores' o 'laptops'"
+    },
+    "Tablets": {
+      "exito_level": "category-3",
+      "exito_value": "tablets",
+      "example_product": "iPad 10",
+      "notes": "Verificar si usa 'tablets' o está dentro de computadores"
+    },
+    "Gaming": {
+      "exito_level": "category-3",
+      "exito_value": "accesorios-de-computador",
+      "example_product": "Teclado Gamer",
+      "notes": "✅ CONFIRMADO por usuario"
+    },
+    "Electrodomésticos": {
+      "exito_level": "category-3",
+      "exito_value": "electrodomesticos",
+      "example_product": "Air Fryer Oster",
+      "notes": "Verificar: puede ser más específico como 'cocina', 'aseo', etc."
+    },
+    "electrodomesticos": {
+      "exito_level": "category-3",
+      "exito_value": "electrodomesticos",
+      "example_product": "Lavadora LG 17Kg",
+      "notes": "Mismo que Electrodomésticos (mayúscula)"
+    },
+    "Televisores": {
+      "exito_level": "category-3",
+      "exito_value": "televisores",
+      "example_product": "Smart TV Samsung 55",
+      "notes": "Verificar: 'televisores', 'tv' o 'audio-y-video'"
+    },
+    "Smartwatches": {
+      "exito_level": "category-3",
+      "exito_value": "smartwatches",
+      "example_product": "Apple Watch SE",
+      "notes": "Verificar: puede estar dentro de 'tecnologia' o 'wearables'"
+    },
+    "Hogar": {
+      "exito_level": "category-3",
+      "exito_value": "hogar",
+      "example_product": "Batidora KitchenAid",
+      "notes": "Verificar: puede ser 'hogar', 'muebles' o 'decoracion'"
+    },
+    "Cámaras": {
+      "exito_level": "category-3",
+      "exito_value": "camaras",
+      "example_product": "Canon EOS Rebel T7",
+      "notes": "Verificar: 'camaras', 'fotografia' o dentro de 'tecnologia'"
+    }
+  }
+}

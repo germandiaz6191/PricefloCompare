@@ -20,11 +20,28 @@ def load_category_mapping():
     return _category_mapping
 
 def map_category(category):
-    """Mapea una categoría de ePriceFlo a categoría de Éxito"""
+    """
+    Mapea una categoría de ePriceFlo a categoría de Éxito.
+    Retorna dict con 'level' y 'value', o None si no hay categoría.
+    """
     if not category:
         return None
+
     mapping = load_category_mapping()
-    return mapping.get(category, category.lower())  # Default: lowercase
+    cat_data = mapping.get(category)
+
+    if cat_data and isinstance(cat_data, dict):
+        # Nuevo formato con level y value
+        return {
+            "level": cat_data.get("level", "category-3"),
+            "value": cat_data.get("value", category.lower())
+        }
+    else:
+        # Fallback: formato antiguo o sin mapeo
+        return {
+            "level": "category-3",
+            "value": category.lower()
+        }
 
 def scrape_graphql(sitio_config, product_name, product_category=None):
     """
@@ -36,26 +53,39 @@ def scrape_graphql(sitio_config, product_name, product_category=None):
         product_category: Categoría opcional para filtrar (ej: "celulares", "electrodomesticos")
     """
     # Mapear categoría si existe
+    category_mapped = None
     if product_category:
-        product_category = map_category(product_category)
-        print(f"[Categoría mapeada]: {product_category}")
+        category_mapped = map_category(product_category)
+        if category_mapped:
+            print(f"[Categoría mapeada]: {product_category} → {category_mapped['value']} (nivel: {category_mapped['level']})")
 
     # Construir payload reemplazando {product_name} y {product_category}
     payload = sitio_config.get("params", {})
     payload_str = json.dumps(payload)
     payload_str = payload_str.replace("{product_name}", product_name)
 
-    # Si hay categoría, reemplazar; si no, eliminar el facet de categoría
-    if product_category:
-        payload_str = payload_str.replace("{product_category}", product_category)
-    else:
-        # Parsear JSON para eliminar el facet de categoría
+    # Si hay categoría mapeada, ajustar facet de categoría
+    if category_mapped:
+        # Parsear JSON para modificar el facet de categoría
         temp_payload = json.loads(payload_str)
         if "variables" in temp_payload and "selectedFacets" in temp_payload["variables"]:
-            # Filtrar facets que contengan {product_category}
+            facets = temp_payload["variables"]["selectedFacets"]
+            # Buscar y actualizar el facet de categoría
+            for facet in facets:
+                if "category" in facet.get("key", ""):
+                    # Actualizar el key con el level correcto
+                    facet["key"] = category_mapped["level"]
+                    # Reemplazar el valor
+                    if "{product_category}" in facet.get("value", ""):
+                        facet["value"] = category_mapped["value"]
+        payload_str = json.dumps(temp_payload)
+    else:
+        # Sin categoría: eliminar el facet de categoría
+        temp_payload = json.loads(payload_str)
+        if "variables" in temp_payload and "selectedFacets" in temp_payload["variables"]:
             facets = temp_payload["variables"]["selectedFacets"]
             temp_payload["variables"]["selectedFacets"] = [
-                f for f in facets if "{product_category}" not in json.dumps(f)
+                f for f in facets if "category" not in f.get("key", "")
             ]
         payload_str = json.dumps(temp_payload)
 

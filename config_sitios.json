@@ -10,19 +10,26 @@
     "url_suffix": "/p",
     "params": {
       "operationName": "SearchQuery",
-      "variables":{
-                    "first":16,
-                    "after":"0",
-                    "sort":"price_asc",
-                    "term":"{product_name}",
-                    "selectedFacets":[
-                                      {"key":"category-2",
-                                      "value":"{product_category}"},
-                                      {"key":"channel",
-                                      "value":"{\"salesChannel\":\"1\",\"regionId\":\"\"}"},
-                                      {"key":"locale","value":"es-CO"}
-                                      ]
-                    }
+      "variables": {
+        "first": 16,
+        "after": "0",
+        "sort": "price_asc",
+        "term": "{product_name}",
+        "selectedFacets": [
+          {
+            "key": "category-3",
+            "value": "{product_category}"
+          },
+          {
+            "key": "channel",
+            "value": "{\"salesChannel\":\"1\",\"regionId\":\"\"}"
+          },
+          {
+            "key": "locale",
+            "value": "es-CO"
+          }
+        ]
+      }
     },
     "title_xpath": "data.search.products.edges[0].node.items[0].name",
     "price_xpath": "data.search.products.edges[0].node.items[0].sellers[1].commertialOffer.PriceWithoutDiscount",

@@ -1,34 +1,53 @@
 {
-  "comment": "Mapeo de categorías de ePriceFlo a categorías de Éxito",
+  "comment": "Mapeo de categorías ePriceFlo a filtros de Éxito (GENERADO AUTOMÁTICAMENTE)",
   "mappings": {
-    "Celulares": "celulares",
-    "celulares": "celulares",
-
-    "Electrodomésticos": "electrodomesticos",
-    "electrodomesticos": "electrodomesticos",
-
-    "Televisores": "tecnologia",
-    "TV": "tecnologia",
-
-    "Computadores": "tecnologia",
-    "Laptops": "tecnologia",
-
-    "Gaming": "tecnologia",
-    "Videojuegos": "tecnologia",
-
-    "Audio": "tecnologia",
-    "Audífonos": "tecnologia",
-
-    "Smartwatches": "tecnologia",
-    "Wearables": "tecnologia",
-
-    "Tablets": "tecnologia",
-
-    "Hogar": "hogar",
-    "Muebles": "hogar",
-    "Decoración": "hogar",
-
-    "Cámaras": "tecnologia",
-    "Fotografía": "tecnologia"
+    "Audio": {
+      "level": "category-3",
+      "value": "audifonos"
+    },
+    "Celulares": {
+      "level": "category-3",
+      "value": "celulares"
+    },
+    "celulares": {
+      "level": "category-3",
+      "value": "celulares"
+    },
+    "Computadores": {
+      "level": "category-3",
+      "value": "portatiles"
+    },
+    "Tablets": {
+      "level": "category-3",
+      "value": "tablets"
+    },
+    "Gaming": {
+      "level": "category-3",
+      "value": "accesorios-de-computador"
+    },
+    "Electrodomésticos": {
+      "level": "category-3",
+      "value": "electrodomesticos"
+    },
+    "electrodomesticos": {
+      "level": "category-3",
+      "value": "electrodomesticos"
+    },
+    "Televisores": {
+      "level": "category-3",
+      "value": "televisores"
+    },
+    "Smartwatches": {
+      "level": "category-3",
+      "value": "smartwatches"
+    },
+    "Hogar": {
+      "level": "category-3",
+      "value": "hogar"
+    },
+    "Cámaras": {
+      "level": "category-3",
+      "value": "camaras"
+    }
   }
 }
