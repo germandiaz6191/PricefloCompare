@@ -3,45 +3,47 @@ import json
 import os
 from scrapers.text_utils import calculate_relevance_score, format_price
 
-# Cargar mapeo de categorías
-_category_mapping = None
+# Importar función de BD para category mapping
+try:
+    from database import get_category_mapping
+    USE_DB_MAPPING = True
+except ImportError:
+    USE_DB_MAPPING = False
 
-def load_category_mapping():
-    """Carga el mapeo de categorías desde category_mapping.json"""
-    global _category_mapping
-    if _category_mapping is None:
-        mapping_file = os.path.join(os.path.dirname(__file__), "..", "category_mapping.json")
-        try:
-            with open(mapping_file, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-                _category_mapping = data.get("mappings", {})
-        except FileNotFoundError:
-            _category_mapping = {}  # Sin mapeo, usar categoría original
-    return _category_mapping
+# Cache de mapeo de categorías (para evitar queries repetidas)
+_category_mapping_cache = {}
 
-def map_category(category):
+def map_category(category, store_name="Éxito"):
     """
-    Mapea una categoría de ePriceFlo a categoría de Éxito.
+    Mapea una categoría de ePriceFlo a categoría de tienda.
+    Lee desde la BD (tabla category_mappings).
     Retorna dict con 'level' y 'value', o None si no hay categoría.
     """
     if not category:
         return None
 
-    mapping = load_category_mapping()
-    cat_data = mapping.get(category)
+    # Usar cache
+    cache_key = f"{store_name}:{category}"
+    if cache_key in _category_mapping_cache:
+        return _category_mapping_cache[cache_key]
 
-    if cat_data and isinstance(cat_data, dict):
-        # Nuevo formato con level y value
-        return {
-            "level": cat_data.get("level", "category-3"),
-            "value": cat_data.get("value", category.lower())
-        }
-    else:
-        # Fallback: formato antiguo o sin mapeo
-        return {
-            "level": "category-3",
-            "value": category.lower()
-        }
+    # Intentar obtener de BD
+    if USE_DB_MAPPING:
+        try:
+            mapping = get_category_mapping(store_name, category)
+            if mapping:
+                _category_mapping_cache[cache_key] = mapping
+                return mapping
+        except Exception as e:
+            print(f"⚠️ Error leyendo category mapping de BD: {e}")
+
+    # Fallback: usar valor por defecto
+    fallback = {
+        "level": "category-3",
+        "value": category.lower()
+    }
+    _category_mapping_cache[cache_key] = fallback
+    return fallback
 
 def scrape_graphql(sitio_config, product_name, product_category=None):
     """
@@ -55,7 +57,8 @@ def scrape_graphql(sitio_config, product_name, product_category=None):
     # Mapear categoría si existe
     category_mapped = None
     if product_category:
-        category_mapped = map_category(product_category)
+        store_name = sitio_config.get("sitio", "Éxito")
+        category_mapped = map_category(product_category, store_name)
         if category_mapped:
             print(f"[Categoría mapeada]: {product_category} → {category_mapped['value']} (nivel: {category_mapped['level']})")
 

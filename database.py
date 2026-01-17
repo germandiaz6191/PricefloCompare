@@ -778,5 +778,65 @@ def count_products_by_country(country_code: str, category: Optional[str] = None)
         return result['total'] if result else 0
 
 
+def get_category_mapping(store_name: str, category_name: str) -> Optional[Dict[str, str]]:
+    """
+    Obtiene el mapeo de categoría para una tienda específica
+
+    Returns:
+        Dict con 'level' y 'value', o None si no existe
+    """
+    with get_db() as conn:
+        cursor = conn.cursor()
+        ph = _param_placeholder()
+
+        query = f"""
+            SELECT cm.filter_level, cm.filter_value
+            FROM category_mappings cm
+            JOIN stores s ON cm.store_id = s.id
+            WHERE s.name = {ph} AND cm.category_name = {ph}
+        """
+
+        cursor.execute(query, (store_name, category_name))
+        result = _fetch_one(cursor)
+
+        if result:
+            return {
+                'level': result['filter_level'],
+                'value': result['filter_value']
+            }
+        return None
+
+
+def get_all_category_mappings(store_name: str) -> Dict[str, Dict[str, str]]:
+    """
+    Obtiene todos los mapeos de categoría para una tienda
+
+    Returns:
+        Dict donde key es category_name y value es dict con 'level' y 'value'
+    """
+    with get_db() as conn:
+        cursor = conn.cursor()
+        ph = _param_placeholder()
+
+        query = f"""
+            SELECT cm.category_name, cm.filter_level, cm.filter_value
+            FROM category_mappings cm
+            JOIN stores s ON cm.store_id = s.id
+            WHERE s.name = {ph}
+        """
+
+        cursor.execute(query, (store_name,))
+        results = _fetch_all(cursor)
+
+        mappings = {}
+        for row in results:
+            mappings[row['category_name']] = {
+                'level': row['filter_level'],
+                'value': row['filter_value']
+            }
+
+        return mappings
+
+
 # Inicializar BD al importar el módulo
 init_db()
