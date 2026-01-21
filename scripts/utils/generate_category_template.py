@@ -45,7 +45,7 @@ with open(output_file, 'w', newline='', encoding='utf-8-sig') as f:
     # Header
     headers = [
         'Categoría Actual',
-        'Productos (ejemplos)',
+        'Productos',
         'Cantidad Productos',
         'Filtro Nivel (Éxito)',
         'Filtro Valor (Éxito)',
@@ -56,13 +56,11 @@ with open(output_file, 'w', newline='', encoding='utf-8-sig') as f:
     # Filas por categoría
     for category in sorted(categories.keys()):
         product_list = categories[category]
-        examples = ', '.join(product_list[:3])  # Primeros 3 productos
-        if len(product_list) > 3:
-            examples += f" (+{len(product_list)-3} más)"
+        all_products = ', '.join(product_list)  # TODOS los productos
 
         writer.writerow([
             category,                  # Categoría Actual
-            examples,                  # Productos (ejemplos)
+            all_products,              # Productos (TODOS)
             len(product_list),         # Cantidad Productos
             'category-3',              # Filtro Nivel (pre-llenado)
             '',                        # Filtro Valor (VACÍO - para llenar)
