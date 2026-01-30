@@ -13,6 +13,65 @@ except ImportError:
 # Cache de mapeo de categorías (para evitar queries repetidas)
 _category_mapping_cache = {}
 
+# Marcas conocidas (en minúsculas para búsqueda case-insensitive)
+KNOWN_BRANDS = {
+    'samsung', 'lg', 'sony', 'motorola', 'xiaomi', 'huawei', 'oppo', 'realme',
+    'hp', 'dell', 'lenovo', 'asus', 'acer',
+    'kalley', 'oster', 'haceb', 'whirlpool', 'electrolux', 'mabe', 'bose', 'jbl',
+    'kitchenaid', 'ninja', 'philips', 'panasonic', 'canon', 'nikon', 'gopro', 'dji',
+    'ring', 'amazfit', 'garmin', 'fitbit', 'microsoft', 'logitech', 'razer'
+}
+
+# Mapeo de productos a marcas (cuando el nombre del producto no contiene la marca directamente)
+PRODUCT_TO_BRAND = {
+    'iphone': 'apple',
+    'ipad': 'apple',
+    'airpods': 'apple',
+    'macbook': 'apple',
+    'imac': 'apple',
+    'mac': 'apple',
+    'watch': 'apple',  # Apple Watch
+    'xbox': 'microsoft',
+    'playstation': 'sony',
+    'ps5': 'sony',
+    'ps4': 'sony',
+    'nintendo': 'nintendo',
+    'switch': 'nintendo'
+}
+
+def extract_brand(product_name):
+    """
+    Extrae la marca del nombre del producto.
+    Busca palabras conocidas o la primera palabra del nombre.
+    Retorna la marca en minúsculas o None.
+    """
+    if not product_name:
+        return None
+
+    # Normalizar nombre (minúsculas)
+    name_lower = product_name.lower()
+    words = name_lower.split()
+
+    # 1. Buscar productos que mapean a marcas específicas
+    for word in words:
+        clean_word = ''.join(c for c in word if c.isalnum())
+        if clean_word in PRODUCT_TO_BRAND:
+            return PRODUCT_TO_BRAND[clean_word]
+
+    # 2. Buscar marca conocida en el nombre
+    for word in words:
+        clean_word = ''.join(c for c in word if c.isalnum())
+        if clean_word in KNOWN_BRANDS:
+            return clean_word
+
+    # 3. Si no se encuentra marca conocida, usar primera palabra como marca
+    if words:
+        first_word = ''.join(c for c in words[0] if c.isalnum())
+        if len(first_word) >= 2:  # Evitar palabras muy cortas
+            return first_word
+
+    return None
+
 def map_category(category, store_name="Éxito"):
     """
     Mapea una categoría de ePriceFlo a categoría de tienda.
@@ -37,9 +96,9 @@ def map_category(category, store_name="Éxito"):
         except Exception as e:
             print(f"⚠️ Error leyendo category mapping de BD: {e}")
 
-    # Fallback: usar valor por defecto
+    # Fallback: usar category-2 con categoría en minúsculas (patrón descubierto)
     fallback = {
-        "level": "category-3",
+        "level": "category-2",
         "value": category.lower()
     }
     _category_mapping_cache[cache_key] = fallback
@@ -54,6 +113,11 @@ def scrape_graphql(sitio_config, product_name, product_category=None):
         product_name: Nombre del producto a buscar
         product_category: Categoría opcional para filtrar (ej: "celulares", "electrodomesticos")
     """
+    # Extraer marca del nombre del producto
+    brand = extract_brand(product_name)
+    if brand:
+        print(f"[Marca detectada]: {brand}")
+
     # Mapear categoría si existe
     category_mapped = None
     if product_category:
@@ -67,32 +131,50 @@ def scrape_graphql(sitio_config, product_name, product_category=None):
     payload_str = json.dumps(payload)
     payload_str = payload_str.replace("{product_name}", product_name)
 
-    # Si hay categoría mapeada, ajustar facet de categoría
-    if category_mapped:
-        # Parsear JSON para modificar el facet de categoría
-        temp_payload = json.loads(payload_str)
-        if "variables" in temp_payload and "selectedFacets" in temp_payload["variables"]:
-            facets = temp_payload["variables"]["selectedFacets"]
-            # Buscar y actualizar el facet de categoría
+    # Parsear payload para modificar facets
+    temp_payload = json.loads(payload_str)
+
+    if "variables" in temp_payload and "selectedFacets" in temp_payload["variables"]:
+        facets = temp_payload["variables"]["selectedFacets"]
+
+        # 1. Actualizar o agregar facet de categoría
+        if category_mapped:
+            category_facet_found = False
             for facet in facets:
                 if "category" in facet.get("key", ""):
-                    # Actualizar el key con el level correcto
+                    # Actualizar facet existente
                     facet["key"] = category_mapped["level"]
-                    # Reemplazar el valor
-                    if "{product_category}" in facet.get("value", ""):
-                        facet["value"] = category_mapped["value"]
-        payload_str = json.dumps(temp_payload)
-    else:
-        # Sin categoría: eliminar el facet de categoría
-        temp_payload = json.loads(payload_str)
-        if "variables" in temp_payload and "selectedFacets" in temp_payload["variables"]:
-            facets = temp_payload["variables"]["selectedFacets"]
+                    facet["value"] = category_mapped["value"]
+                    category_facet_found = True
+                    break
+
+            # Si no existía, agregarlo al inicio (después del term)
+            if not category_facet_found:
+                facets.insert(0, {
+                    "key": category_mapped["level"],
+                    "value": category_mapped["value"]
+                })
+        else:
+            # Sin categoría: eliminar facet de categoría
             temp_payload["variables"]["selectedFacets"] = [
                 f for f in facets if "category" not in f.get("key", "")
             ]
-        payload_str = json.dumps(temp_payload)
+            facets = temp_payload["variables"]["selectedFacets"]
 
-    payload_json = json.loads(payload_str)
+        # 2. Agregar facet de marca si se detectó
+        if brand:
+            # Verificar si ya existe facet de marca
+            brand_facet_exists = any(f.get("key") == "brand" for f in facets)
+            if not brand_facet_exists:
+                # Insertar después de categoría (posición 1) o al inicio
+                insert_pos = 1 if category_mapped else 0
+                facets.insert(insert_pos, {
+                    "key": "brand",
+                    "value": brand
+                })
+                print(f"[Filtro de marca agregado]: brand = {brand}")
+
+    payload_json = temp_payload
 
     url = sitio_config["url"]
 

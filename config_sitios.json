@@ -17,7 +17,7 @@
         "term": "{product_name}",
         "selectedFacets": [
           {
-            "key": "category-3",
+            "key": "category-2",
             "value": "{product_category}"
           },
           {
