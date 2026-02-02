@@ -93,8 +93,9 @@ def map_category(category, store_name="Éxito"):
             if mapping:
                 _category_mapping_cache[cache_key] = mapping
                 return mapping
-        except Exception as e:
-            print(f"⚠️ Error leyendo category mapping de BD: {e}")
+        except Exception:
+            # Tabla no existe o error de BD - usar fallback silenciosamente
+            pass
 
     # Fallback: usar category-2 con categoría en minúsculas (patrón descubierto)
     fallback = {
@@ -120,11 +121,18 @@ def scrape_graphql(sitio_config, product_name, product_category=None):
 
     # Mapear categoría si existe
     category_mapped = None
+    use_brand_filter = True  # Por defecto sí usar marca
     if product_category:
         store_name = sitio_config.get("sitio", "Éxito")
         category_mapped = map_category(product_category, store_name)
         if category_mapped:
-            print(f"[Categoría mapeada]: {product_category} → {category_mapped['value']} (nivel: {category_mapped['level']})")
+            # Verificar si este mapeo usa filtro de marca
+            use_brand_filter = category_mapped.get('use_brand', True)
+
+            if category_mapped['level']:  # Si tiene categoría
+                print(f"[Categoría mapeada]: {product_category} → {category_mapped['value']} (nivel: {category_mapped['level']})")
+            else:  # Si no tiene categoría (solo marca)
+                print(f"[Categoría mapeada]: {product_category} → solo marca (sin categoría)")
 
     # Construir payload reemplazando {product_name} y {product_category}
     payload = sitio_config.get("params", {})
@@ -138,7 +146,7 @@ def scrape_graphql(sitio_config, product_name, product_category=None):
         facets = temp_payload["variables"]["selectedFacets"]
 
         # 1. Actualizar o agregar facet de categoría
-        if category_mapped:
+        if category_mapped and category_mapped.get("level"):  # Solo si tiene nivel de categoría
             category_facet_found = False
             for facet in facets:
                 if "category" in facet.get("key", ""):
@@ -161,13 +169,14 @@ def scrape_graphql(sitio_config, product_name, product_category=None):
             ]
             facets = temp_payload["variables"]["selectedFacets"]
 
-        # 2. Agregar facet de marca si se detectó
-        if brand:
+        # 2. Agregar facet de marca si se detectó Y se debe usar
+        if brand and use_brand_filter:
             # Verificar si ya existe facet de marca
             brand_facet_exists = any(f.get("key") == "brand" for f in facets)
             if not brand_facet_exists:
                 # Insertar después de categoría (posición 1) o al inicio
-                insert_pos = 1 if category_mapped else 0
+                has_category = category_mapped and category_mapped.get("level")
+                insert_pos = 1 if has_category else 0
                 facets.insert(insert_pos, {
                     "key": "brand",
                     "value": brand

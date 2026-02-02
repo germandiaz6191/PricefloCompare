@@ -102,6 +102,16 @@ def init_db():
                 last_searched_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
 
+            CREATE TABLE IF NOT EXISTS category_mappings (
+                id SERIAL PRIMARY KEY,
+                store_id INTEGER NOT NULL REFERENCES stores(id) ON DELETE CASCADE,
+                category_name VARCHAR(100) NOT NULL,
+                filter_level VARCHAR(20) NOT NULL,
+                filter_value VARCHAR(100) NOT NULL,
+                use_brand BOOLEAN DEFAULT TRUE,
+                UNIQUE(store_id, category_name)
+            );
+
             CREATE INDEX IF NOT EXISTS idx_price_product_date ON price_snapshots(product_id, scraped_at DESC);
             CREATE INDEX IF NOT EXISTS idx_price_store_date ON price_snapshots(store_id, scraped_at DESC);
             CREATE INDEX IF NOT EXISTS idx_product_category ON products(category);
@@ -154,6 +164,17 @@ def init_db():
                 ignored INTEGER DEFAULT 0,
                 first_searched_at TEXT DEFAULT (datetime('now')),
                 last_searched_at TEXT DEFAULT (datetime('now'))
+            );
+
+            CREATE TABLE IF NOT EXISTS category_mappings (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                store_id INTEGER NOT NULL,
+                category_name VARCHAR(100) NOT NULL,
+                filter_level VARCHAR(20) NOT NULL,
+                filter_value VARCHAR(100) NOT NULL,
+                use_brand INTEGER DEFAULT 1,
+                FOREIGN KEY (store_id) REFERENCES stores(id) ON DELETE CASCADE,
+                UNIQUE(store_id, category_name)
             );
 
             CREATE INDEX IF NOT EXISTS idx_price_product_date ON price_snapshots(product_id, scraped_at DESC);
@@ -790,7 +811,7 @@ def get_category_mapping(store_name: str, category_name: str) -> Optional[Dict[s
         ph = _param_placeholder()
 
         query = f"""
-            SELECT cm.filter_level, cm.filter_value
+            SELECT cm.filter_level, cm.filter_value, cm.use_brand
             FROM category_mappings cm
             JOIN stores s ON cm.store_id = s.id
             WHERE s.name = {ph} AND cm.category_name = {ph}
@@ -802,7 +823,8 @@ def get_category_mapping(store_name: str, category_name: str) -> Optional[Dict[s
         if result:
             return {
                 'level': result['filter_level'],
-                'value': result['filter_value']
+                'value': result['filter_value'],
+                'use_brand': bool(result['use_brand'])
             }
         return None
 
