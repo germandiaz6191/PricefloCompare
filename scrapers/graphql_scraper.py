@@ -291,30 +291,60 @@ def scrape_graphql(sitio_config, product_name, product_category=None):
             price = extract_from_json(data, price_path_indexed) if price_path_indexed else None
 
             # Extraer URL del producto si está configurada
-            product_url = url  # Por defecto, URL de búsqueda
+            product_url = None
             url_path = sitio_config.get("url_xpath")
+
             if url_path:
                 url_path_indexed = re.sub(r'\[0\]', f'[{index}]', url_path, count=1)
                 link_text = extract_from_json(data, url_path_indexed)
+
                 if link_text:
-                    # Construir URL completa
+                    # Caso 1: linkText existe - usar método normal
                     base_url = sitio_config.get("base_product_url", "")
-                    url_suffix = sitio_config.get("url_suffix", "")  # Sufijo opcional (ej: "/p" para Éxito)
+                    url_suffix = sitio_config.get("url_suffix", "")
 
                     if link_text.startswith('http'):
                         product_url = link_text
                     else:
-                        # Construir URL base
                         if link_text.startswith('/'):
                             product_url = f"{base_url}{link_text}"
                         else:
                             product_url = f"{base_url}/{link_text}"
 
-                        # Agregar sufijo si existe
                         if url_suffix:
                             product_url = f"{product_url}{url_suffix}"
 
                     print(f"[{sitio_config['sitio']}] URL del producto: {product_url}")
+                else:
+                    # Caso 2: linkText NO existe - construir URL alternativa
+                    # Intentar obtener productId
+                    product_id_path = f"data.search.products.edges[{index}].node.productId"
+                    product_id = extract_from_json(data, product_id_path)
+
+                    if not product_id:
+                        # Intentar itemId como alternativa
+                        item_id_path = f"data.search.products.edges[{index}].node.items[0].itemId"
+                        product_id = extract_from_json(data, item_id_path)
+
+                    if product_id and sitio_config['sitio'] == "Éxito":
+                        # Construir URL con patrón de Éxito: {slug}-{productId}-mp/p
+                        # Crear slug del título
+                        import unicodedata
+                        slug = title.lower()
+                        # Remover acentos
+                        slug = ''.join(c for c in unicodedata.normalize('NFD', slug)
+                                     if unicodedata.category(c) != 'Mn')
+                        # Reemplazar espacios y caracteres especiales
+                        slug = re.sub(r'[^a-z0-9]+', '-', slug)
+                        # Remover guiones al inicio/final
+                        slug = slug.strip('-')
+
+                        base_url = sitio_config.get("base_product_url", "https://www.exito.com")
+                        product_url = f"{base_url}/{slug}-{product_id}-mp/p"
+                        print(f"[{sitio_config['sitio']}] ⚠️ linkText no encontrado - URL construida: {product_url}")
+                    else:
+                        # Si no podemos construir URL, dejar como None
+                        print(f"[{sitio_config['sitio']}] ⚠️ No se pudo construir URL del producto")
 
             best_result = {
                 "sitio": sitio_config["sitio"],
