@@ -346,6 +346,11 @@ def scrape_graphql(sitio_config, product_name, product_category=None):
                         # Si no podemos construir URL, dejar como None
                         print(f"[{sitio_config['sitio']}] ⚠️ No se pudo construir URL del producto")
 
+            # Validar que la URL no sea una URL del API GraphQL
+            if product_url and ('graphql' in product_url.lower() or '/api/' in product_url.lower()):
+                print(f"[{sitio_config['sitio']}] ⛔ URL del API detectada, descartando: {product_url[:80]}...")
+                product_url = None
+
             best_result = {
                 "sitio": sitio_config["sitio"],
                 "busqueda": product_name,
@@ -359,7 +364,9 @@ def scrape_graphql(sitio_config, product_name, product_category=None):
             best_score = score
 
     if best_result:
+        url_debug = best_result.get('url') or '(sin URL)'
         print(f"[{sitio_config['sitio']}] ✅ Mejor resultado: '{best_result['title']}' (score: {best_score}/100)")
+        print(f"[{sitio_config['sitio']}] 🔗 URL que se guardará en BD: {url_debug}")
         return best_result
     else:
         print(f"[{sitio_config['sitio']}] ❌ No se encontró ningún resultado relevante (score >= 60)")

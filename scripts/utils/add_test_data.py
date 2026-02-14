@@ -103,6 +103,11 @@ def scrape_and_save():
                     title = result.get('title', product_name)
                     price = result['price']  # Ya es un integer
                     url = result.get('url', '')
+                    score = result.get('score', 0)
+
+                    # Detectar si la URL es problemática (URL del API en lugar del producto)
+                    url_is_bad = url and ('graphql' in url.lower() or '/api/' in url.lower())
+                    url_status = "⚠️  URL INCORRECTA (API GraphQL)" if url_is_bad else "✅ URL OK"
 
                     # Guardar en BD
                     add_price_snapshot(
@@ -115,16 +120,19 @@ def scrape_and_save():
                     )
 
                     total_saved += 1
-                    # Formatear precio para mostrar en consola
-                    print(f"✅ ${price:,}")
-                    print(f"      📝 {title}")
-                    if url:
-                        print(f"      🔗 {url[:80]}...")
+                    print(f"✅ ${price:,}  (score: {score}/100)")
+                    print(f"      📝 Título: {title}")
+                    print(f"      🔗 URL ({url_status}):")
+                    print(f"         {url}")
+                    if not url:
+                        print(f"      ⚠️  URL vacía - el botón 'Ver en tienda' no funcionará")
                 else:
                     print(f"❌ No encontrado")
+                    if result:
+                        print(f"      Score obtenido: {result.get('score', 0)}/100 (mínimo requerido: 60)")
 
             except Exception as e:
-                print(f"❌ Error: {str(e)[:50]}")
+                print(f"❌ Error: {str(e)[:100]}")
 
     # Resumen final
     print(f"\n{'='*60}")
