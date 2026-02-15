@@ -6,6 +6,15 @@ Combina creación de productos + scraping en una sola ejecución
 import os
 import sys
 
+# Configurar UTF-8 para compatibilidad con emojis en Windows
+# Debe ir ANTES de cualquier import que use print con emojis
+if hasattr(sys.stdout, 'reconfigure'):
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+        sys.stderr.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
+
 # Obtener directorio raíz del proyecto (2 niveles arriba de este script)
 script_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.dirname(os.path.dirname(script_dir))
