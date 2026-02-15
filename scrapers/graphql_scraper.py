@@ -290,6 +290,14 @@ def scrape_graphql(sitio_config, product_name, product_category=None):
         if is_relevant and score > best_score:
             price = extract_from_json(data, price_path_indexed) if price_path_indexed else None
 
+            # Fallback: si el precio no se encontró con el path configurado,
+            # intentar con sellers[0] (algunos productos solo tienen un vendedor)
+            if price is None and price_path_indexed and 'sellers[1]' in price_path_indexed:
+                fallback_path = price_path_indexed.replace('sellers[1]', 'sellers[0]')
+                price = extract_from_json(data, fallback_path)
+                if price is not None:
+                    print(f"[{sitio_config['sitio']}] ℹ️ Precio obtenido de sellers[0] (fallback): {price}")
+
             # Extraer URL del producto si está configurada
             product_url = None
             url_path = sitio_config.get("url_xpath")
