@@ -35,7 +35,7 @@ def normalize_text(text: str) -> str:
     return text
 
 
-def calculate_relevance_score(search_term: str, title: str, threshold: int = 60) -> Tuple[int, bool]:
+def calculate_relevance_score(search_term: str, title: str, threshold: int = 50) -> Tuple[int, bool]:
     """
     Calcula un score de relevancia entre 0-100 comparando el término de búsqueda con el título.
 

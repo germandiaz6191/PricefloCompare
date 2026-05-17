@@ -21,12 +21,12 @@ if IS_POSTGRES:
         if DATABASE_URL.startswith("postgres://"):
             DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
     except ImportError:
-        print("⚠️  psycopg2 no instalado. Instala: pip install psycopg2-binary")
+        print("[WARN] psycopg2 no instalado. Instala: pip install psycopg2-binary")
         raise
 else:
     import sqlite3
 
-print(f"🗄️  Usando {'PostgreSQL' if IS_POSTGRES else 'SQLite'} como base de datos")
+print(f"[DB] Usando {'PostgreSQL' if IS_POSTGRES else 'SQLite'} como base de datos")
 
 
 @contextmanager
@@ -185,7 +185,7 @@ def init_db():
             """)
 
         conn.commit()
-        print("✅ Base de datos inicializada")
+        print("[OK] Base de datos inicializada")
 
 
 def _serialize_value(value):
@@ -827,6 +827,47 @@ def get_category_mapping(store_name: str, category_name: str) -> Optional[Dict[s
                 'use_brand': bool(result['use_brand'])
             }
         return None
+
+
+def add_category_mapping(store_name: str, category_name: str,
+                         filter_level: str, filter_value: str,
+                         use_brand: bool = True) -> bool:
+    """Crea o actualiza un mapeo de categoría para una tienda. Idempotente."""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        ph = _param_placeholder()
+
+        cursor.execute(f"SELECT id FROM stores WHERE name = {ph}", (store_name,))
+        store = _fetch_one(cursor)
+        if not store:
+            return False
+        store_id = store['id']
+
+        use_brand_value = use_brand if IS_POSTGRES else (1 if use_brand else 0)
+
+        if IS_POSTGRES:
+            cursor.execute(f"""
+                INSERT INTO category_mappings
+                    (store_id, category_name, filter_level, filter_value, use_brand)
+                VALUES ({ph}, {ph}, {ph}, {ph}, {ph})
+                ON CONFLICT (store_id, category_name) DO UPDATE SET
+                    filter_level = EXCLUDED.filter_level,
+                    filter_value = EXCLUDED.filter_value,
+                    use_brand = EXCLUDED.use_brand
+            """, (store_id, category_name, filter_level, filter_value, use_brand_value))
+        else:
+            cursor.execute(f"""
+                INSERT INTO category_mappings
+                    (store_id, category_name, filter_level, filter_value, use_brand)
+                VALUES ({ph}, {ph}, {ph}, {ph}, {ph})
+                ON CONFLICT(store_id, category_name) DO UPDATE SET
+                    filter_level = excluded.filter_level,
+                    filter_value = excluded.filter_value,
+                    use_brand = excluded.use_brand
+            """, (store_id, category_name, filter_level, filter_value, use_brand_value))
+
+        conn.commit()
+        return True
 
 
 def get_all_category_mappings(store_name: str) -> Dict[str, Dict[str, str]]:

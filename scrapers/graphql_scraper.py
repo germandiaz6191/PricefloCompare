@@ -97,13 +97,9 @@ def map_category(category, store_name="Éxito"):
             # Tabla no existe o error de BD - usar fallback silenciosamente
             pass
 
-    # Fallback: usar category-2 con categoría en minúsculas (patrón descubierto)
-    fallback = {
-        "level": "category-2",
-        "value": category.lower()
-    }
-    _category_mapping_cache[cache_key] = fallback
-    return fallback
+    # Sin mapeo en BD: no filtrar por categoria (evita 0 resultados con valores invalidos)
+    _category_mapping_cache[cache_key] = None
+    return None
 
 def scrape_graphql(sitio_config, product_name, product_category=None):
     """
@@ -134,61 +130,51 @@ def scrape_graphql(sitio_config, product_name, product_category=None):
             else:  # Si no tiene categoría (solo marca)
                 print(f"[Categoría mapeada]: {product_category} → solo marca (sin categoría)")
 
-    # Construir payload reemplazando {product_name} y {product_category}
-    payload = sitio_config.get("params", {})
-    payload_str = json.dumps(payload)
-    payload_str = payload_str.replace("{product_name}", product_name)
+    def _build_payload(include_brand):
+        """Construye el payload GraphQL. include_brand=False omite el facet brand."""
+        payload_local = sitio_config.get("params", {})
+        payload_str_local = json.dumps(payload_local)
+        payload_str_local = payload_str_local.replace("{product_name}", product_name)
+        temp = json.loads(payload_str_local)
 
-    # Parsear payload para modificar facets
-    temp_payload = json.loads(payload_str)
+        if "variables" in temp and "selectedFacets" in temp["variables"]:
+            facets_local = temp["variables"]["selectedFacets"]
 
-    if "variables" in temp_payload and "selectedFacets" in temp_payload["variables"]:
-        facets = temp_payload["variables"]["selectedFacets"]
+            if category_mapped and category_mapped.get("level"):
+                category_facet_found = False
+                for facet in facets_local:
+                    if "category" in facet.get("key", ""):
+                        facet["key"] = category_mapped["level"]
+                        facet["value"] = category_mapped["value"]
+                        category_facet_found = True
+                        break
+                if not category_facet_found:
+                    facets_local.insert(0, {
+                        "key": category_mapped["level"],
+                        "value": category_mapped["value"]
+                    })
+            else:
+                temp["variables"]["selectedFacets"] = [
+                    f for f in facets_local if "category" not in f.get("key", "")
+                ]
+                facets_local = temp["variables"]["selectedFacets"]
 
-        # 1. Actualizar o agregar facet de categoría
-        if category_mapped and category_mapped.get("level"):  # Solo si tiene nivel de categoría
-            category_facet_found = False
-            for facet in facets:
-                if "category" in facet.get("key", ""):
-                    # Actualizar facet existente
-                    facet["key"] = category_mapped["level"]
-                    facet["value"] = category_mapped["value"]
-                    category_facet_found = True
-                    break
+            if brand and include_brand:
+                brand_facet_exists = any(f.get("key") == "brand" for f in facets_local)
+                if not brand_facet_exists:
+                    has_category = category_mapped and category_mapped.get("level")
+                    insert_pos = 1 if has_category else 0
+                    facets_local.insert(insert_pos, {
+                        "key": "brand",
+                        "value": brand
+                    })
+                    print(f"[Filtro de marca agregado]: brand = {brand}")
+        return temp
 
-            # Si no existía, agregarlo al inicio (después del term)
-            if not category_facet_found:
-                facets.insert(0, {
-                    "key": category_mapped["level"],
-                    "value": category_mapped["value"]
-                })
-        else:
-            # Sin categoría: eliminar facet de categoría
-            temp_payload["variables"]["selectedFacets"] = [
-                f for f in facets if "category" not in f.get("key", "")
-            ]
-            facets = temp_payload["variables"]["selectedFacets"]
+    payload_json = _build_payload(use_brand_filter)
 
-        # 2. Agregar facet de marca si se detectó Y se debe usar
-        if brand and use_brand_filter:
-            # Verificar si ya existe facet de marca
-            brand_facet_exists = any(f.get("key") == "brand" for f in facets)
-            if not brand_facet_exists:
-                # Insertar después de categoría (posición 1) o al inicio
-                has_category = category_mapped and category_mapped.get("level")
-                insert_pos = 1 if has_category else 0
-                facets.insert(insert_pos, {
-                    "key": "brand",
-                    "value": brand
-                })
-                print(f"[Filtro de marca agregado]: brand = {brand}")
+    base_url = sitio_config["url"]
 
-    payload_json = temp_payload
-
-    url = sitio_config["url"]
-
-    # Headers más completos para evitar detección de bot
-    # Nota: Accept-Encoding se omite para que requests lo maneje automáticamente
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         "Accept": "application/json, text/plain, */*",
@@ -202,182 +188,145 @@ def scrape_graphql(sitio_config, product_name, product_category=None):
         "Sec-Fetch-Site": "same-origin"
     }
 
-    try:
-        if sitio_config.get("requires_url_variables", False):
-            # === Caso GET con variables en la URL (ej: Éxito) ===
-            from urllib.parse import urlencode
+    def _request_and_iterate(payload):
+        """Hace el request GraphQL y itera resultados. Devuelve best_result o None."""
+        url_local = base_url
+        try:
+            if sitio_config.get("requires_url_variables", False):
+                from urllib.parse import urlencode
+                operation_name = payload.get("operationName")
+                variables = payload.get("variables", {})
+                query_params = {
+                    "operationName": operation_name,
+                    "variables": json.dumps(variables, separators=(",", ":"))
+                }
+                url_local = f"{url_local}?{urlencode(query_params)}"
+                resp = requests.get(url_local, headers=headers, timeout=10)
+            else:
+                resp = requests.post(url_local, json=payload, headers=headers, timeout=10)
+            resp.raise_for_status()
+        except requests.RequestException as e:
+            print(f"[ERROR] Conexion con {sitio_config['sitio']}: {e}")
+            print("URL:", url_local)
+            print("Payload JSON:", json.dumps(payload, indent=2, ensure_ascii=False))
+            return None
 
-            operation_name = payload_json.get("operationName")
-            variables = payload_json.get("variables", {})
+        debug_filename = f"{sitio_config['sitio']}_resultado.json"
+        try:
+            with open(debug_filename, "w", encoding="utf-8") as f:
+                f.write(resp.text)
+            print(f"[DEBUG] Respuesta guardada en: {debug_filename}")
+        except Exception:
+            pass
 
-            query_params = {
-                "operationName": operation_name,
-                "variables": json.dumps(variables, separators=(",", ":"))
-            }
-            url = f"{url}?{urlencode(query_params)}"
+        try:
+            data = resp.json()
+        except json.JSONDecodeError as e:
+            print(f"❌ Error parseando respuesta JSON de {sitio_config['sitio']}: {e}")
+            print(f"[DEBUG] Content-Type: {resp.headers.get('Content-Type', 'desconocido')}")
+            print(f"[DEBUG] Status: {resp.status_code}")
+            print(resp.text[:500])
+            return None
 
-            resp = requests.get(url, headers=headers, timeout=10)
-
-        else:
-            # === Caso estándar: POST con body JSON ===
-            resp = requests.post(url, json=payload_json, headers=headers, timeout=10)
-        
-        resp.raise_for_status()
-    except requests.RequestException as e:
-        print(f"❌ Error de conexión con {sitio_config['sitio']}: {e}")
-        print("=== Detalles de la petición fallida ===")
-        print("URL:", url)
-        print("Headers:", headers)
-        print("Payload JSON:", json.dumps(payload_json, indent=2, ensure_ascii=False))
-        print("=======================================")
-        return None
-
-    # Guardar respuesta para debug
-    debug_filename = f"{sitio_config['sitio']}_resultado.json"
-    try:
-        with open(debug_filename, "w", encoding="utf-8") as f:
-            f.write(resp.text)
-        print(f"[DEBUG] Respuesta guardada en: {debug_filename}")
-    except Exception:
-        pass  # Ignorar errores al guardar debug
-
-    # Intentar parsear JSON
-    try:
-        data = resp.json()
-    except json.JSONDecodeError as e:
-        print(f"❌ Error parseando respuesta JSON de {sitio_config['sitio']}: {e}")
-        print(f"[DEBUG] Content-Type recibido: {resp.headers.get('Content-Type', 'desconocido')}")
-        print(f"[DEBUG] Status code: {resp.status_code}")
-        print(f"[DEBUG] Respuesta recibida (primeros 500 chars):")
-        print(resp.text[:500])
-        print("=== Posible causa: ===")
-        print("- El sitio puede estar devolviendo HTML en lugar de JSON")
-        print("- Puede ser una página de error o desafío de Cloudflare")
-        print("- Verifica si el sitio ha cambiado su API")
-        return None
-
-    # Buscar en múltiples resultados (hasta 10) para encontrar el más relevante
-    best_result = None
-    best_score = 0
-
-    # Intentar extraer múltiples productos de la respuesta
-    max_results = 10
-    for index in range(max_results):
-        # Reemplazar [0] con [index] en los paths
+        import re
         title_path = sitio_config.get("title_xpath")
         price_path = sitio_config.get("price_xpath")
-
         if not title_path:
-            break
+            return None
 
-        # Reemplazar el índice en el path (ej: edges[0] -> edges[1])
-        import re
-        title_path_indexed = re.sub(r'\[0\]', f'[{index}]', title_path, count=1)
-        price_path_indexed = re.sub(r'\[0\]', f'[{index}]', price_path, count=1) if price_path else None
+        best = None
+        best_s = 0
+        for index in range(10):
+            title_path_indexed = re.sub(r'\[0\]', f'[{index}]', title_path, count=1)
+            price_path_indexed = re.sub(r'\[0\]', f'[{index}]', price_path, count=1) if price_path else None
 
-        title = extract_from_json(data, title_path_indexed)
+            title = extract_from_json(data, title_path_indexed)
+            if not title:
+                break
 
-        if not title:
-            # No hay más resultados
-            break
+            score, is_relevant = calculate_relevance_score(product_name, title)
+            print(f"[{sitio_config['sitio']}] Resultado {index}: '{title}' - Score: {score}/100")
 
-        # Calcular score de relevancia
-        score, is_relevant = calculate_relevance_score(product_name, title)
+            if is_relevant and score > best_s:
+                price = extract_from_json(data, price_path_indexed) if price_path_indexed else None
 
-        print(f"[{sitio_config['sitio']}] Resultado {index}: '{title}' - Score: {score}/100")
+                if price is None and price_path_indexed and 'sellers[1]' in price_path_indexed:
+                    fallback_path = price_path_indexed.replace('sellers[1]', 'sellers[0]')
+                    price = extract_from_json(data, fallback_path)
+                    if price is not None:
+                        print(f"[{sitio_config['sitio']}] [INFO] Precio obtenido de sellers[0] (fallback): {price}")
 
-        # Guardar el mejor resultado encontrado
-        if is_relevant and score > best_score:
-            price = extract_from_json(data, price_path_indexed) if price_path_indexed else None
-
-            # Fallback: si el precio no se encontró con el path configurado,
-            # intentar con sellers[0] (algunos productos solo tienen un vendedor)
-            if price is None and price_path_indexed and 'sellers[1]' in price_path_indexed:
-                fallback_path = price_path_indexed.replace('sellers[1]', 'sellers[0]')
-                price = extract_from_json(data, fallback_path)
-                if price is not None:
-                    print(f"[{sitio_config['sitio']}] ℹ️ Precio obtenido de sellers[0] (fallback): {price}")
-
-            # Extraer URL del producto si está configurada
-            product_url = None
-            url_path = sitio_config.get("url_xpath")
-
-            if url_path:
-                url_path_indexed = re.sub(r'\[0\]', f'[{index}]', url_path, count=1)
-                link_text = extract_from_json(data, url_path_indexed)
-
-                if link_text:
-                    # Caso 1: linkText existe - usar método normal
-                    base_url = sitio_config.get("base_product_url", "")
-                    url_suffix = sitio_config.get("url_suffix", "")
-
-                    if link_text.startswith('http'):
-                        product_url = link_text
-                    else:
-                        if link_text.startswith('/'):
-                            product_url = f"{base_url}{link_text}"
-                        else:
-                            product_url = f"{base_url}/{link_text}"
-
-                        if url_suffix:
-                            product_url = f"{product_url}{url_suffix}"
-
-                    print(f"[{sitio_config['sitio']}] URL del producto: {product_url}")
-                else:
-                    # Caso 2: linkText NO existe - construir URL alternativa
-                    # Intentar obtener productId
-                    product_id_path = f"data.search.products.edges[{index}].node.productId"
-                    product_id = extract_from_json(data, product_id_path)
-
-                    if not product_id:
-                        # Intentar itemId como alternativa
-                        item_id_path = f"data.search.products.edges[{index}].node.items[0].itemId"
-                        product_id = extract_from_json(data, item_id_path)
-
-                    if product_id and sitio_config['sitio'] == "Éxito":
-                        # Construir URL con patrón de Éxito: {slug}-{productId}-mp/p
-                        # Crear slug del título
-                        import unicodedata
-                        slug = title.lower()
-                        # Remover acentos
-                        slug = ''.join(c for c in unicodedata.normalize('NFD', slug)
-                                     if unicodedata.category(c) != 'Mn')
-                        # Reemplazar espacios y caracteres especiales
-                        slug = re.sub(r'[^a-z0-9]+', '-', slug)
-                        # Remover guiones al inicio/final
-                        slug = slug.strip('-')
-
-                        base_url = sitio_config.get("base_product_url", "https://www.exito.com")
-                        product_url = f"{base_url}/{slug}-{product_id}-mp/p"
-                        print(f"[{sitio_config['sitio']}] ⚠️ linkText no encontrado - URL construida: {product_url}")
-                    else:
-                        # Si no podemos construir URL, dejar como None
-                        print(f"[{sitio_config['sitio']}] ⚠️ No se pudo construir URL del producto")
-
-            # Validar que la URL no sea una URL del API GraphQL
-            if product_url and ('graphql' in product_url.lower() or '/api/' in product_url.lower()):
-                print(f"[{sitio_config['sitio']}] ⛔ URL del API detectada, descartando: {product_url[:80]}...")
                 product_url = None
+                url_path = sitio_config.get("url_xpath")
+                if url_path:
+                    url_path_indexed = re.sub(r'\[0\]', f'[{index}]', url_path, count=1)
+                    link_text = extract_from_json(data, url_path_indexed)
 
-            best_result = {
-                "sitio": sitio_config["sitio"],
-                "busqueda": product_name,
-                "url": product_url,
-                "title_path": title_path_indexed,
-                "price_path": price_path_indexed,
-                "title": title,
-                "price": format_price(str(price)) if price else None,
-                "score": score
-            }
-            best_score = score
+                    if link_text:
+                        product_base = sitio_config.get("base_product_url", "")
+                        url_suffix = sitio_config.get("url_suffix", "")
+                        if link_text.startswith('http'):
+                            product_url = link_text
+                        else:
+                            if link_text.startswith('/'):
+                                product_url = f"{product_base}{link_text}"
+                            else:
+                                product_url = f"{product_base}/{link_text}"
+                            if url_suffix:
+                                product_url = f"{product_url}{url_suffix}"
+                        print(f"[{sitio_config['sitio']}] URL del producto: {product_url}")
+                    else:
+                        product_id_path = f"data.search.products.edges[{index}].node.productId"
+                        product_id = extract_from_json(data, product_id_path)
+                        if not product_id:
+                            item_id_path = f"data.search.products.edges[{index}].node.items[0].itemId"
+                            product_id = extract_from_json(data, item_id_path)
+
+                        if product_id and sitio_config['sitio'] == "Éxito":
+                            import unicodedata
+                            slug = title.lower()
+                            slug = ''.join(c for c in unicodedata.normalize('NFD', slug)
+                                         if unicodedata.category(c) != 'Mn')
+                            slug = re.sub(r'[^a-z0-9]+', '-', slug)
+                            slug = slug.strip('-')
+                            product_base = sitio_config.get("base_product_url", "https://www.exito.com")
+                            product_url = f"{product_base}/{slug}-{product_id}-mp/p"
+                            print(f"[{sitio_config['sitio']}] [WARN] linkText no encontrado - URL construida: {product_url}")
+                        else:
+                            print(f"[{sitio_config['sitio']}] [WARN] No se pudo construir URL del producto")
+
+                if product_url and ('graphql' in product_url.lower() or '/api/' in product_url.lower()):
+                    print(f"[{sitio_config['sitio']}] [BLOCK] URL del API detectada, descartando: {product_url[:80]}...")
+                    product_url = None
+
+                best = {
+                    "sitio": sitio_config["sitio"],
+                    "busqueda": product_name,
+                    "url": product_url,
+                    "title_path": title_path_indexed,
+                    "price_path": price_path_indexed,
+                    "title": title,
+                    "price": format_price(str(price)) if price else None,
+                    "score": score
+                }
+                best_s = score
+
+        return best
+
+    best_result = _request_and_iterate(payload_json)
+
+    # Fallback: si no hubo resultados con filtro de marca, reintentar sin marca
+    if best_result is None and brand and use_brand_filter:
+        print(f"[{sitio_config['sitio']}] [RETRY] Sin resultados con brand={brand}, reintentando sin filtro de marca")
+        best_result = _request_and_iterate(_build_payload(False))
 
     if best_result:
         url_debug = best_result.get('url') or '(sin URL)'
-        print(f"[{sitio_config['sitio']}] ✅ Mejor resultado: '{best_result['title']}' (score: {best_score}/100)")
-        print(f"[{sitio_config['sitio']}] 🔗 URL que se guardará en BD: {url_debug}")
+        print(f"[{sitio_config['sitio']}] [OK] Mejor resultado: '{best_result['title']}' (score: {best_result['score']}/100)")
+        print(f"[{sitio_config['sitio']}] [URL] URL que se guardara en BD: {url_debug}")
         return best_result
     else:
-        print(f"[{sitio_config['sitio']}] ❌ No se encontró ningún resultado relevante (score >= 60)")
+        print(f"[{sitio_config['sitio']}] [ERROR] No se encontro ningun resultado relevante (score >= 60)")
         return None
 
 def extract_from_json(data, path):

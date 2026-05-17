@@ -23,8 +23,8 @@ def scrape_and_save(product: Dict, store: Dict) -> bool:
     Returns True si fue exitoso, False si hubo error
     """
     try:
-        # Preparar config de la tienda (está como JSON)
-        store_config = store['config']
+        # Preparar config de la tienda: mezclar JSON config con campos top-level (url, name, fetch_method)
+        store_config = {**store['config'], 'url': store['url'], 'sitio': store['name'], 'fetch_method': store['fetch_method']}
 
         # Scrape usando la lógica existente
         result = scrape_price(
@@ -34,13 +34,13 @@ def scrape_and_save(product: Dict, store: Dict) -> bool:
         )
 
         if not result:
-            print(f"   ⚠️  Sin resultados para {product['name']} en {store['name']}")
+            print(f"   [WARN] Sin resultados para {product['name']} en {store['name']}")
             return False
 
         # Verificar que tenemos precio
         precio = result.get('price')
         if not precio:
-            print(f"   ⚠️  Sin precio para {product['name']} en {store['name']}")
+            print(f"   [WARN] Sin precio para {product['name']} en {store['name']}")
             return False
 
         # Guardar en base de datos
@@ -53,11 +53,11 @@ def scrape_and_save(product: Dict, store: Dict) -> bool:
             relevance_score=result.get('score', 0)
         )
 
-        print(f"   ✅ {product['name']} en {store['name']}: ${precio:,.0f}")
+        print(f"   [OK] {product['name']} en {store['name']}: ${precio:,.0f}")
         return True
 
     except Exception as e:
-        print(f"   ❌ Error {product['name']} - {store['name']}: {str(e)}")
+        print(f"   [ERROR] {product['name']} - {store['name']}: {str(e)}")
         return False
 
 
@@ -68,24 +68,24 @@ def run_batch_update(delay_between_requests: float = 2.0):
     Args:
         delay_between_requests: Segundos de espera entre requests (evitar bloqueos)
     """
-    print("🚀 Iniciando actualización batch de precios...")
-    print(f"⏰ Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    print("Iniciando actualizacion batch de precios...")
+    print(f"Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print("="*70)
 
     # Obtener productos a actualizar
     products = get_products_to_update()
     if not products:
-        print("✨ No hay productos para actualizar en este momento")
+        print("No hay productos para actualizar en este momento")
         return
 
     # Obtener tiendas activas
     stores = get_stores(active_only=True)
     if not stores:
-        print("❌ No hay tiendas activas configuradas")
+        print("[ERROR] No hay tiendas activas configuradas")
         return
 
-    print(f"📦 Actualizando {len(products)} productos en {len(stores)} tiendas")
-    print(f"⏱️  Delay entre requests: {delay_between_requests}s")
+    print(f"Actualizando {len(products)} productos en {len(stores)} tiendas")
+    print(f"Delay entre requests: {delay_between_requests}s")
     print()
 
     # Contadores
@@ -95,9 +95,9 @@ def run_batch_update(delay_between_requests: float = 2.0):
 
     # Scrape cada producto en cada tienda
     for i, product in enumerate(products, 1):
-        print(f"[{i}/{len(products)}] 📱 {product['name']}")
+        print(f"[{i}/{len(products)}] {product['name']}")
         if product.get('category'):
-            print(f"         Categoría: {product['category']}")
+            print(f"         Categoria: {product['category']}")
 
         for store in stores:
             total_attempts += 1
@@ -117,24 +117,24 @@ def run_batch_update(delay_between_requests: float = 2.0):
 
     # Resumen
     print("="*70)
-    print("📊 RESUMEN DE ACTUALIZACIÓN")
+    print("RESUMEN DE ACTUALIZACION")
     print("="*70)
     print(f"Total de intentos: {total_attempts}")
-    print(f"✅ Exitosos: {total_success} ({total_success/total_attempts*100:.1f}%)")
-    print(f"❌ Fallidos: {total_failures} ({total_failures/total_attempts*100:.1f}%)")
+    print(f"[OK] Exitosos: {total_success} ({total_success/total_attempts*100:.1f}%)")
+    print(f"[ERROR] Fallidos: {total_failures} ({total_failures/total_attempts*100:.1f}%)")
     print()
 
     # Estadísticas generales
     stats = get_stats()
-    print("📈 ESTADÍSTICAS GENERALES")
+    print("ESTADISTICAS GENERALES")
     print("="*70)
     print(f"Total de productos: {stats['total_products']}")
     print(f"Total de tiendas: {stats['total_stores']}")
     print(f"Total de snapshots: {stats['total_snapshots']}")
-    print(f"Último scrape: {stats['last_scrape']}")
+    print(f"Ultimo scrape: {stats['last_scrape']}")
     print("="*70)
 
-    print(f"\n✨ Actualización completada: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"\nActualizacion completada: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
 
 def update_single_product(product_name: str, delay_between_requests: float = 2.0):
@@ -147,7 +147,7 @@ def update_single_product(product_name: str, delay_between_requests: float = 2.0
     """
     from database import get_db
 
-    print(f"🔍 Buscando producto: {product_name}")
+    print(f"Buscando producto: {product_name}")
 
     with get_db() as conn:
         row = conn.execute(
@@ -156,12 +156,12 @@ def update_single_product(product_name: str, delay_between_requests: float = 2.0
         ).fetchone()
 
         if not row:
-            print(f"❌ Producto no encontrado: {product_name}")
+            print(f"[ERROR] Producto no encontrado: {product_name}")
             return
 
         product = dict(row)
 
-    print(f"✅ Producto encontrado: {product['name']} (ID: {product['id']})")
+    print(f"[OK] Producto encontrado: {product['name']} (ID: {product['id']})")
     print()
 
     # Obtener tiendas activas
@@ -182,8 +182,8 @@ def update_single_product(product_name: str, delay_between_requests: float = 2.0
             time.sleep(delay_between_requests)
 
     print()
-    print(f"✅ Exitosos: {total_success}")
-    print(f"❌ Fallidos: {total_failures}")
+    print(f"[OK] Exitosos: {total_success}")
+    print(f"[ERROR] Fallidos: {total_failures}")
 
 
 if __name__ == "__main__":

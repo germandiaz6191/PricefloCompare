@@ -59,3 +59,6 @@ htmlcov/
 last_updates.json
 temp/
 tmp/
+
+# Scripts locales (no se suben a produccion)
+run_job.ps1

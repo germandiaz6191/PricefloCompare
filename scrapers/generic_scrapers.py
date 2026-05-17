@@ -5,9 +5,31 @@ from urllib.parse import urlencode
 from scrapers.graphql_scraper import scrape_graphql  # nuevo módulo
 from scrapers.text_utils import calculate_relevance_score, normalize_text, format_price
 
-def load_sites_config(path="config_sitios.json"):
-    with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)
+def load_sites_config(path=None):
+    """
+    Carga la configuración de sitios desde la BD (tabla 'stores').
+    El parámetro 'path' se mantiene por compatibilidad pero se ignora.
+    """
+    from database import get_stores
+
+    stores = get_stores(active_only=True)
+    sites = []
+    for store in stores:
+        config = store.get("config") or {}
+        if isinstance(config, str):
+            config = json.loads(config)
+
+        site = dict(config)
+        site["sitio"] = store["name"]
+        site["url"] = store["url"]
+        site["fetch_method"] = store["fetch_method"]
+        if store.get("country_code"):
+            site["country_code"] = store["country_code"]
+        if store.get("currency"):
+            site["currency"] = store["currency"]
+        sites.append(site)
+
+    return sites
 
 def scrape_price(sitio_config, product_name, product_category=None):
     """
@@ -67,64 +89,68 @@ def scrape_html(sitio_config, product_name):
         f.write(resp.content)
     print(f"HTML guardado en: {filename}")
 
-    # Extraer título
+    # Extraer títulos (todos los resultados) y elegir el de mejor score
     title_xpath = sitio_config.get("title_xpath")
-    title_text = None
-    if title_xpath:
-        elements = tree.xpath(title_xpath)
-        if elements:
-            title_text = elements[0].text_content().strip()
-            print(f"[{sitio_config['sitio']}] Primer título encontrado: '{title_text}'")
-
-            # Calcular score de relevancia
-            score, is_relevant = calculate_relevance_score(product_name, title_text)
-            print(f"[{sitio_config['sitio']}] Score de relevancia: {score}/100")
-
-            if not is_relevant:
-                print(f"[{sitio_config['sitio']}] Primer resultado no es relevante (score < 60)")
-                return None
-        else:
-            print(f"[{sitio_config['sitio']}] No se encontró ningún título con el xpath '{title_xpath}'")
-            return None
-
-    # Extraer precio
     price_xpath = sitio_config.get("price_xpath")
-    price_text = None
-    if price_xpath:
-        price_elements = tree.xpath(price_xpath)
-        if price_elements:
-            price_text = price_elements[0].text_content().strip()
-            price_text = format_price(price_text)
-
-    # Extraer URL del producto
-    product_url = None
     url_xpath = sitio_config.get("url_xpath")
-    if url_xpath:
-        url_elements = tree.xpath(url_xpath)
-        if url_elements:
-            # Si es un atributo (/@href), xpath devuelve string directamente
-            if isinstance(url_elements[0], str):
-                product_url = url_elements[0]
-            else:
-                # Si es un elemento, obtener su text_content
-                product_url = url_elements[0].text_content().strip()
 
-            # Construir URL completa si es relativa
-            if product_url and not product_url.startswith('http'):
-                base_url = sitio_config.get("base_product_url", "")
-                product_url = base_url + product_url
+    if not title_xpath:
+        return None
 
-            print(f"[{sitio_config['sitio']}] URL del producto: {product_url}")
+    title_elements = tree.xpath(title_xpath)
+    if not title_elements:
+        print(f"[{sitio_config['sitio']}] No se encontró ningún título con el xpath '{title_xpath}'")
+        return None
 
-    if title_text:
-        return {
-            "sitio": sitio_config["sitio"],
-            "busqueda": product_name,
-            "url": product_url or url,  # Usar URL del producto si existe, sino la de búsqueda
-            "title_xpath": title_xpath,
-            "price_xpath": price_xpath,
-            "title": title_text,
-            "price": price_text
-        }
+    url_elements = tree.xpath(url_xpath) if url_xpath else []
+    price_elements = tree.xpath(price_xpath) if price_xpath else []
 
-    return None
+    max_results = min(15, len(title_elements))
+    best_idx = -1
+    best_score = -1
+    best_title = None
+    for i in range(max_results):
+        txt = title_elements[i].text_content().strip()
+        score, is_relevant = calculate_relevance_score(product_name, txt)
+        print(f"[{sitio_config['sitio']}] Resultado {i}: '{txt[:70]}' - Score: {score}/100")
+        if is_relevant and score > best_score:
+            best_score = score
+            best_idx = i
+            best_title = txt
+
+    if best_idx < 0:
+        print(f"[{sitio_config['sitio']}] [ERROR] Ningun resultado relevante (score >= 60) en top {max_results}")
+        return None
+
+    title_text = best_title
+    print(f"[{sitio_config['sitio']}] [OK] Mejor resultado [idx={best_idx}]: '{title_text}' (score: {best_score}/100)")
+
+    # Extraer URL en el mismo índice
+    product_url = None
+    if best_idx < len(url_elements):
+        raw_url = url_elements[best_idx]
+        product_url = raw_url if isinstance(raw_url, str) else raw_url.text_content().strip()
+        if product_url and not product_url.startswith('http'):
+            base_url = sitio_config.get("base_product_url", "")
+            product_url = base_url + product_url
+        print(f"[{sitio_config['sitio']}] URL del producto: {product_url}")
+
+    # Extraer precio: preferir el del mismo índice; fallback al único si el xpath devuelve 1 sólo
+    price_text = None
+    if best_idx < len(price_elements):
+        price_text = format_price(price_elements[best_idx].text_content().strip())
+    elif len(price_elements) == 1:
+        price_text = format_price(price_elements[0].text_content().strip())
+    elif price_xpath:
+        print(f"[{sitio_config['sitio']}] ⚠️ price_xpath devolvió {len(price_elements)} elementos; precio no extraído")
+
+    return {
+        "sitio": sitio_config["sitio"],
+        "busqueda": product_name,
+        "url": product_url or url,
+        "title_xpath": title_xpath,
+        "price_xpath": price_xpath,
+        "title": title_text,
+        "price": price_text,
+        "score": best_score
+    }

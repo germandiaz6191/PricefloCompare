@@ -99,4 +99,57 @@ pip install -r requirements.txt
 
 ---
 
-**¿Todo listo?** Visita http://localhost:8000/docs para explorar la API 🎉
+## Correr el Job de Scraping por Entorno (Windows)
+
+**`python job_scraper.py` sigue funcionando igual que siempre.** El wrapper
+`run_job.ps1` es solo un atajo para cambiar de entorno sin tocar variables
+manualmente — no reemplaza nada.
+
+```
+python job_scraper.py         → local SQLite  (igual que siempre)
+.\run_job.ps1                 → local SQLite  (mismo resultado, via wrapper)
+.\run_job.ps1 :pdn            → produccion    (wrapper setea DATABASE_URL y llama a python job_scraper.py)
+```
+
+### Local (SQLite)
+
+```powershell
+# Batch completo
+python job_scraper.py
+
+# Un producto específico (ignora el intervalo de 12h)
+python job_scraper.py "Nevera Samsung 300L"
+```
+
+### Producción (PostgreSQL Supabase)
+
+> **Primera vez:** Windows bloquea scripts `.ps1` por defecto. Habilitar una sola vez:
+> ```powershell
+> Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+> ```
+
+```powershell
+# Batch completo
+.\run_job.ps1 :pdn
+
+# Un producto específico en produccion
+.\run_job.ps1 :pdn "Nevera Samsung 300L"
+```
+
+### Notas importantes
+
+- `run_job.ps1` lee el `DATABASE_URL` del archivo `.env` local para `:pdn`.
+- `run_job.ps1` está en `.gitignore` — no se sube a producción.
+- `job_scraper.py` no fue modificado para entornos — es seguro desplegarlo a producción tal cual.
+- En producción Railway inyecta `DATABASE_URL` automáticamente; el job se corre como `python job_scraper.py` sin flags.
+- El job solo procesa productos cuyo `update_interval_hours` ya venció (default: 12h). Para forzar un producto sin esperar, pásalo por nombre.
+
+### Ver precios guardados en la BD local
+
+```powershell
+python scripts/utils/view_db.py
+```
+
+---
+
+**¿Todo listo?** Visita http://localhost:8000/docs para explorar la API

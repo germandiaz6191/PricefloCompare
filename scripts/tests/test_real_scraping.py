@@ -9,17 +9,15 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.dirname(os.path.dirname(script_dir))
 sys.path.insert(0, project_root)
 
-from scrapers.generic_scrapers import scrape_price
-import json
+from scrapers.generic_scrapers import scrape_price, load_sites_config
 
 print("="*80)
 print("🔍 PRUEBA REAL DE SCRAPING CON DETECCIÓN DE MARCA")
 print("="*80)
 
-# Cargar configuración de Éxito
-with open("config_sitios.json", "r", encoding="utf-8") as f:
-    sites = json.load(f)
-    exito_config = next(s for s in sites if s["sitio"] == "Éxito")
+# Cargar configuración de Éxito desde BD
+sites = load_sites_config()
+exito_config = next(s for s in sites if s["sitio"] == "Éxito")
 
 # Casos de prueba
 test_products = [

@@ -1,0 +1,32 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pip --version)",
+      "Bash(git --version)",
+      "Bash(cmd.exe *)",
+      "Bash(python *)",
+      "PowerShell(& \"C:\\\\Users\\\\cherm\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python311\\\\python.exe\" _inspect.py)",
+      "PowerShell(& \"C:\\\\Users\\\\cherm\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python311\\\\python.exe\" _inspect2.py)",
+      "PowerShell($env:DATABASE_URL=\"\"; & \"C:\\\\Users\\\\cherm\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python311\\\\python.exe\" scripts\\\\migrations\\\\migrate_json_configs.py)",
+      "PowerShell($env:PYTHONIOENCODING=\"utf-8\"; $env:DATABASE_URL=\"data/prices.db\"; & \"C:\\\\Users\\\\cherm\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python311\\\\python.exe\" scripts\\\\migrations\\\\migrate_json_configs.py)",
+      "PowerShell($env:PYTHONIOENCODING=\"utf-8\"; $env:DATABASE_URL=\"data/prices.db\"; & \"C:\\\\Users\\\\cherm\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python311\\\\python.exe\" _inspect2.py)",
+      "PowerShell($env:PYTHONIOENCODING=\"utf-8\"; $env:DATABASE_URL=\"data/prices.db\"; & \"C:\\\\Users\\\\cherm\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python311\\\\python.exe\" _test_scrape.py)",
+      "PowerShell($env:PYTHONIOENCODING=\"utf-8\"; $env:DATABASE_URL=\"data/prices.db\"; & \"C:\\\\Users\\\\cherm\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python311\\\\python.exe\" -c \"from scrapers.generic_scrapers import load_sites_config; from database import get_category_mapping; sites = load_sites_config\\(\\); print\\(f'Sitios desde BD: {len\\(sites\\)}'\\); m = get_category_mapping\\('Éxito', 'Celulares'\\); print\\(f'Mapeo Celulares en Exito: {m}'\\)\")",
+      "PowerShell($env:PYTHONIOENCODING=\"utf-8\"; & \"C:\\\\Users\\\\cherm\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python311\\\\python.exe\" _verify.py)",
+      "Bash(git config *)",
+      "PowerShell(& \"C:\\\\Users\\\\cherm\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python311\\\\python.exe\" -c \"from scraper import on_demand; on_demand\\('iPhone 16', 'celulares'\\)\")",
+      "PowerShell($env:PYTHONIOENCODING='utf-8'; & \"C:\\\\Users\\\\cherm\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python311\\\\python.exe\" -c \"from scraper import on_demand; on_demand\\('iPhone 16', 'celulares'\\)\")",
+      "PowerShell($env:PYTHONIOENCODING='utf-8'; & \"C:\\\\Users\\\\cherm\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python311\\\\python.exe\" -c \"from scraper import on_demand; on_demand\\('Lavadora LG 17Kg', 'electrodomesticos'\\)\")",
+      "PowerShell($env:PYTHONIOENCODING='utf-8'; & \"C:\\\\Users\\\\cherm\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python311\\\\python.exe\" -c \"from scraper import on_demand; on_demand\\('Lavadora LG 18Kg', 'electrodomesticos'\\)\")",
+      "PowerShell($env:PYTHONIOENCODING='utf-8'; & \"C:\\\\Users\\\\cherm\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python311\\\\python.exe\" -c \"from scraper import on_demand; on_demand\\('Lavadora LG 13Kg', 'electrodomesticos'\\)\")",
+      "PowerShell($env:PYTHONIOENCODING='utf-8'; & \"C:\\\\Users\\\\cherm\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python311\\\\python.exe\" -c \"from scraper import on_demand; on_demand\\('lavadora'\\)\")",
+      "PowerShell($env:PYTHONIOENCODING='utf-8'; & \"C:\\\\Users\\\\cherm\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python311\\\\python.exe\" -c \"from database import get_products_to_update, get_stores; ps = get_products_to_update\\(\\); ss = get_stores\\(\\); print\\('Productos a actualizar:', len\\(ps\\)\\); print\\('Tiendas:', len\\(ss\\)\\); [print\\('  -', p['name'], '|', p.get\\('category',''\\)\\) for p in ps[:10]]\")",
+      "PowerShell($env:PYTHONIOENCODING='utf-8'; & \"C:\\\\Users\\\\cherm\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python311\\\\python.exe\" job_scraper.py)",
+      "PowerShell($env:PYTHONIOENCODING='utf-8'; & \"C:\\\\Users\\\\cherm\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python311\\\\python.exe\" -c \"from database import get_stores; import json; [print\\(s['name'], '->', json.dumps\\(s['config'], indent=2\\)[:400]\\) for s in get_stores\\(\\)]\")",
+      "PowerShell($env:PYTHONIOENCODING='utf-8'; & \"C:\\\\Users\\\\cherm\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python311\\\\python.exe\" _inspect_html.py)",
+      "PowerShell($env:PYTHONIOENCODING='utf-8'; & \"C:\\\\Users\\\\cherm\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python311\\\\python.exe\" -c \"import scrapers.graphql_scraper; import scrapers.generic_scrapers; print\\('OK imports'\\)\")",
+      "PowerShell($env:PYTHONIOENCODING='utf-8'; & \"C:\\\\Users\\\\cherm\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python311\\\\python.exe\" -c \"import json; d = json.load\\(open\\('Éxito_resultado.json', 'r', encoding='utf-8'\\)\\); print\\(json.dumps\\(d, indent=2, ensure_ascii=False\\)[:2000]\\)\")",
+      "PowerShell($env:PYTHONIOENCODING = \"utf-8\"; cd \"F:\\\\GRUPO EXITO\\\\Workspacewebscraping\\\\PricefloCompare\"; python job_scraper.py)"
+    ]
+  }
+}
