@@ -1548,29 +1548,12 @@ button:disabled {
     margin: 30px auto 20px;
 }
 
-/* Layout para productos con sidebar de ads */
-.products-main-layout {
-    display: grid;
-    grid-template-columns: 1fr 320px;
-    gap: 30px;
-    align-items: start;
-}
-
-.sidebar-ads {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-}
-
-/* Responsivo - Ocultar sidebar en móvil */
-@media (max-width: 1024px) {
-    .products-main-layout {
-        grid-template-columns: 1fr;
-    }
-
-    .sidebar-ads {
-        display: none;
-    }
+/* Banner publicitario entre filas del grid */
+.ad-infeed {
+    grid-column: 1 / -1;
+    min-height: 90px;
+    border-radius: 8px;
+    overflow: hidden;
 }
 
 /* Ad entre resultados de búsqueda */

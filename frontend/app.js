@@ -1074,6 +1074,16 @@ async function displayProducts(products) {
     products.forEach((product, index) => {
         const card = createProductCardSync(product, allPrices[index]);
         grid.appendChild(card);
+
+        // Banner después de la primera fila (3 productos) y al final
+        const isFirstRow = index === 2;
+        const isLast = index === products.length - 1;
+        if ((isFirstRow && products.length > 3) || isLast) {
+            const ad = document.createElement('div');
+            ad.className = 'ad-infeed';
+            ad.innerHTML = '<div style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;height:90px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;border-radius:8px;font-family:system-ui,sans-serif;"><div style="font-size:1.4em;">📢</div><div style="font-weight:600;font-size:0.9rem;">Espacio publicitario</div></div>';
+            grid.appendChild(ad);
+        }
     });
 }
 

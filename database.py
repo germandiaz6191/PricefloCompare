@@ -112,6 +112,13 @@ def init_db():
                 UNIQUE(store_id, category_name)
             );
 
+            CREATE TABLE IF NOT EXISTS product_stores (
+                id SERIAL PRIMARY KEY,
+                product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+                store_id INTEGER NOT NULL REFERENCES stores(id) ON DELETE CASCADE,
+                UNIQUE(product_id, store_id)
+            );
+
             CREATE INDEX IF NOT EXISTS idx_price_product_date ON price_snapshots(product_id, scraped_at DESC);
             CREATE INDEX IF NOT EXISTS idx_price_store_date ON price_snapshots(store_id, scraped_at DESC);
             CREATE INDEX IF NOT EXISTS idx_product_category ON products(category);
@@ -177,6 +184,15 @@ def init_db():
                 UNIQUE(store_id, category_name)
             );
 
+            CREATE TABLE IF NOT EXISTS product_stores (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                product_id INTEGER NOT NULL,
+                store_id INTEGER NOT NULL,
+                FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
+                FOREIGN KEY (store_id) REFERENCES stores(id) ON DELETE CASCADE,
+                UNIQUE(product_id, store_id)
+            );
+
             CREATE INDEX IF NOT EXISTS idx_price_product_date ON price_snapshots(product_id, scraped_at DESC);
             CREATE INDEX IF NOT EXISTS idx_price_store_date ON price_snapshots(store_id, scraped_at DESC);
             CREATE INDEX IF NOT EXISTS idx_product_category ON products(category);
@@ -231,34 +247,62 @@ def _param_placeholder(index: int = 0) -> str:
 
 # === FUNCIONES DE PRODUCTOS ===
 
-def count_products(category: Optional[str] = None) -> int:
-    """Cuenta el total de productos (con filtro opcional por categoría)"""
+def count_products(category: Optional[str] = None, search: Optional[str] = None, store_id: Optional[int] = None) -> int:
+    """Cuenta el total de productos con filtros opcionales"""
     with get_db() as conn:
         cursor = conn.cursor()
-        query = "SELECT COUNT(*) as total FROM products WHERE 1=1"
-        params = []
+        ph = _param_placeholder()
+
+        if store_id is not None:
+            query = f"SELECT COUNT(DISTINCT p.id) as total FROM products p JOIN product_stores ps ON p.id = ps.product_id WHERE ps.store_id = {ph}"
+            params = [store_id]
+            prefix = "p."
+        else:
+            query = "SELECT COUNT(*) as total FROM products WHERE 1=1"
+            params = []
+            prefix = ""
 
         if category:
-            query += f" AND category = {_param_placeholder()}"
+            query += f" AND {prefix}category = {ph}"
             params.append(category)
+
+        if search:
+            like_op = "ILIKE" if IS_POSTGRES else "LIKE"
+            query += f" AND {prefix}name {like_op} {ph}"
+            params.append(f"%{search}%")
 
         cursor.execute(query, params)
         result = _fetch_one(cursor)
         return result['total'] if result else 0
 
 
-def get_products(limit: Optional[int] = None, offset: Optional[int] = None, category: Optional[str] = None) -> List[Dict]:
-    """Obtiene lista de productos con paginación"""
+def get_products(limit: Optional[int] = None, offset: Optional[int] = None,
+                 category: Optional[str] = None, search: Optional[str] = None,
+                 store_id: Optional[int] = None) -> List[Dict]:
+    """Obtiene lista de productos con paginación y filtros opcionales"""
     with get_db() as conn:
         cursor = conn.cursor()
-        query = "SELECT * FROM products WHERE 1=1"
-        params = []
+        ph = _param_placeholder()
+
+        if store_id is not None:
+            query = f"SELECT DISTINCT p.* FROM products p JOIN product_stores ps ON p.id = ps.product_id WHERE ps.store_id = {ph}"
+            params = [store_id]
+            prefix = "p."
+        else:
+            query = "SELECT * FROM products WHERE 1=1"
+            params = []
+            prefix = ""
 
         if category:
-            query += f" AND category = {_param_placeholder()}"
+            query += f" AND {prefix}category = {ph}"
             params.append(category)
 
-        query += " ORDER BY is_frequent DESC, name ASC"
+        if search:
+            like_op = "ILIKE" if IS_POSTGRES else "LIKE"
+            query += f" AND {prefix}name {like_op} {ph}"
+            params.append(f"%{search}%")
+
+        query += f" ORDER BY {prefix}is_frequent DESC, {prefix}name ASC"
 
         if limit:
             query += f" LIMIT {limit}"
@@ -381,6 +425,109 @@ def add_store(name: str, url: str, fetch_method: str, config: Dict) -> int:
 
         conn.commit()
         return store_id
+
+
+# === FUNCIONES CRUD DE PRODUCTOS ===
+
+def update_product(product_id: int, name: str, category: Optional[str],
+                   is_frequent: bool, update_interval_hours: int, active: bool = True) -> bool:
+    """Actualiza un producto existente"""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        ph = _param_placeholder()
+        is_frequent_val = is_frequent if IS_POSTGRES else (1 if is_frequent else 0)
+        cursor.execute(f"""
+            UPDATE products SET name={ph}, category={ph}, is_frequent={ph},
+                update_interval_hours={ph}, updated_at={'NOW()' if IS_POSTGRES else "datetime('now')"}
+            WHERE id={ph}
+        """, (name, category, is_frequent_val, update_interval_hours, product_id))
+        conn.commit()
+        return cursor.rowcount > 0
+
+
+def delete_product(product_id: int) -> bool:
+    """Elimina un producto y sus snapshots asociados"""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        ph = _param_placeholder()
+        cursor.execute(f"DELETE FROM products WHERE id = {ph}", (product_id,))
+        conn.commit()
+        return cursor.rowcount > 0
+
+
+# === FUNCIONES CRUD DE TIENDAS ===
+
+def get_store_by_id(store_id: int) -> Optional[Dict]:
+    """Obtiene una tienda por ID incluyendo config completo"""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            f"SELECT * FROM stores WHERE id = {_param_placeholder()}",
+            (store_id,)
+        )
+        store = _fetch_one(cursor)
+        if store and not IS_POSTGRES and store.get('config'):
+            store['config'] = json.loads(store['config'])
+        return store
+
+
+def update_store(store_id: int, name: str, url: str, fetch_method: str,
+                 config: Dict, active: bool) -> bool:
+    """Actualiza una tienda existente"""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        ph = _param_placeholder()
+        active_val = active if IS_POSTGRES else (1 if active else 0)
+        config_val = json.dumps(config, ensure_ascii=False) if not IS_POSTGRES else json.dumps(config)
+        cursor.execute(f"""
+            UPDATE stores SET name={ph}, url={ph}, fetch_method={ph},
+                config={ph}, active={ph}
+            WHERE id={ph}
+        """, (name, url, fetch_method, config_val, active_val, store_id))
+        conn.commit()
+        return cursor.rowcount > 0
+
+
+def delete_store(store_id: int) -> bool:
+    """Elimina una tienda"""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        ph = _param_placeholder()
+        cursor.execute(f"DELETE FROM stores WHERE id = {ph}", (store_id,))
+        conn.commit()
+        return cursor.rowcount > 0
+
+
+# === PRODUCT-STORE ASSIGNMENTS ===
+
+def get_stores_for_product(product_id: int) -> List[int]:
+    """Retorna los IDs de tiendas asignadas a un producto"""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            f"SELECT store_id FROM product_stores WHERE product_id = {_param_placeholder()}",
+            (product_id,)
+        )
+        rows = cursor.fetchall()
+        if not rows:
+            return []
+        if IS_POSTGRES:
+            return [r[0] for r in rows]
+        return [dict(r)['store_id'] for r in rows]
+
+
+def set_product_stores(product_id: int, store_ids: List[int]) -> None:
+    """Reemplaza las tiendas asignadas a un producto"""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        ph = _param_placeholder()
+        cursor.execute(f"DELETE FROM product_stores WHERE product_id = {ph}", (product_id,))
+        for store_id in store_ids:
+            cursor.execute(
+                f"INSERT INTO product_stores (product_id, store_id) VALUES ({ph}, {ph})",
+                (product_id, store_id)
+            )
+        conn.commit()
 
 
 # === FUNCIONES DE PRECIOS ===

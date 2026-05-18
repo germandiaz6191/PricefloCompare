@@ -136,6 +136,9 @@ def run_batch_update(delay_between_requests: float = 2.0):
 
     print(f"\nActualizacion completada: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
+    import json as _json
+    print(f"\n__JOB_RESULT__{_json.dumps({'success': total_success, 'failed': total_failures, 'total': total_attempts})}__JOB_RESULT__")
+
 
 def update_single_product(product_name: str, delay_between_requests: float = 2.0):
     """

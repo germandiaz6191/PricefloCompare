@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin — PricefloCompare</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+           background: #f5f6fa; color: #2d3436; }
+
+    /* NAV */
+    nav { background: #2d3436; color: #fff; padding: 14px 24px;
+          display: flex; align-items: center; gap: 16px; }
+    nav h1 { font-size: 1rem; font-weight: 600; }
+    nav a { color: #b2bec3; text-decoration: none; font-size: .85rem; }
+    nav a:hover { color: #fff; }
+
+    /* TABS */
+    .tabs { display: flex; gap: 0; border-bottom: 2px solid #dfe6e9;
+            padding: 0 24px; background: #fff; }
+    .tab { padding: 14px 24px; cursor: pointer; font-size: .9rem;
+           font-weight: 500; color: #636e72; border-bottom: 3px solid transparent;
+           margin-bottom: -2px; transition: color .15s; }
+    .tab.active { color: #0984e3; border-bottom-color: #0984e3; }
+    .tab:hover:not(.active) { color: #2d3436; }
+
+    /* PANEL */
+    .panel { display: none; padding: 24px; }
+    .panel.active { display: block; }
+
+    /* TOOLBAR */
+    .toolbar { display: flex; justify-content: space-between; align-items: center;
+               margin-bottom: 16px; }
+    .toolbar h2 { font-size: 1.1rem; font-weight: 600; }
+
+    /* BUTTONS */
+    .btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer;
+           font-size: .85rem; font-weight: 500; transition: opacity .15s; }
+    .btn:hover { opacity: .85; }
+    .btn:disabled { background: #b2bec3; color: #fff; cursor: not-allowed; opacity: 1; }
+    .btn-primary   { background: #0984e3; color: #fff; }
+    .btn-danger    { background: #d63031; color: #fff; }
+    .btn-secondary { background: #636e72; color: #fff; }
+    .btn-success   { background: #00b894; color: #fff; }
+    .btn-ghost     { background: none; border: 1px solid #dfe6e9; color: #636e72; }
+    .btn-ghost:hover { background: #f5f6fa; opacity: 1; }
+    .btn-sm { padding: 5px 10px; font-size: .78rem; }
+
+    /* TABLE */
+    .table-wrap { background: #fff; border-radius: 8px;
+                  box-shadow: 0 1px 4px rgba(0,0,0,.08); overflow: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: .87rem; }
+    th { background: #f5f6fa; text-align: left; padding: 10px 14px;
+         font-weight: 600; color: #636e72; font-size: .78rem;
+         text-transform: uppercase; letter-spacing: .4px; }
+    td { padding: 10px 14px; border-top: 1px solid #f0f2f5; vertical-align: middle; }
+    tr:hover td { background: #f9fafc; }
+    .actions { display: flex; gap: 6px; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 20px;
+             font-size: .75rem; font-weight: 600; }
+    .badge-on      { background: #d4efdf; color: #1e8449; }
+    .badge-off     { background: #fadbd8; color: #922b21; }
+    .badge-html    { background: #d6eaf8; color: #1a5276; }
+    .badge-graphql { background: #e8daef; color: #6c3483; }
+
+    /* MODAL */
+    .modal-overlay { display: none; position: fixed; inset: 0;
+                     background: rgba(0,0,0,.45); z-index: 100;
+                     align-items: center; justify-content: center; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: #fff; border-radius: 10px; padding: 28px;
+             width: 100%; max-width: 640px; max-height: 90vh;
+             overflow-y: auto; position: relative; }
+    .modal h3 { font-size: 1.1rem; margin-bottom: 20px; }
+    .modal-close { position: absolute; top: 16px; right: 18px;
+                   background: none; border: none; font-size: 1.3rem;
+                   cursor: pointer; color: #636e72; }
+
+    /* FORM */
+    .form-group { margin-bottom: 16px; }
+    label { display: block; font-size: .82rem; font-weight: 600;
+            color: #636e72; margin-bottom: 5px; }
+    input[type=text], input[type=number], select, textarea {
+      width: 100%; padding: 8px 10px; border: 1px solid #dfe6e9;
+      border-radius: 6px; font-size: .88rem; font-family: inherit;
+      transition: border-color .15s; }
+    input:focus, select:focus, textarea:focus {
+      outline: none; border-color: #0984e3; }
+    textarea { resize: vertical; font-family: 'Courier New', monospace;
+               font-size: .82rem; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .form-footer { display: flex; justify-content: flex-end; gap: 10px;
+                   margin-top: 20px; padding-top: 16px;
+                   border-top: 1px solid #f0f2f5; }
+    .switch-row { display: flex; align-items: center; gap: 10px; }
+    .switch-row label { margin: 0; }
+    input[type=checkbox] { width: 16px; height: 16px; cursor: pointer; }
+
+    /* CHIPS */
+    .chips-area { display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+                  min-height: 36px; padding: 6px 8px;
+                  border: 1px solid #dfe6e9; border-radius: 6px;
+                  background: #fafbfc; }
+    .chip { display: inline-flex; align-items: center; gap: 5px;
+            background: #dff0ff; color: #0972c9; border-radius: 20px;
+            padding: 3px 10px 3px 10px; font-size: .8rem; font-weight: 500; }
+    .chip-remove { background: none; border: none; cursor: pointer;
+                   color: #0972c9; font-size: .9rem; line-height: 1;
+                   padding: 0 0 0 2px; opacity: .7; }
+    .chip-remove:hover { opacity: 1; }
+    .chips-placeholder { color: #b2bec3; font-size: .82rem; }
+    .chips-manage { display: inline-flex; align-items: center; gap: 4px;
+                    padding: 3px 10px; border: 1px dashed #b2bec3;
+                    border-radius: 20px; font-size: .8rem; color: #636e72;
+                    background: none; cursor: pointer; transition: all .15s; }
+    .chips-manage:hover { border-color: #0984e3; color: #0984e3; background: #f0f7ff; }
+
+    /* VISTA TIENDAS (dentro del modal producto) */
+    .view-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+    .btn-back { display: flex; align-items: center; gap: 6px; background: none;
+                border: none; cursor: pointer; color: #636e72; font-size: .88rem;
+                font-weight: 500; padding: 4px 0; transition: color .15s; }
+    .btn-back:hover { color: #2d3436; }
+    .btn-back svg { flex-shrink: 0; }
+    .stores-search-wrap { position: relative; margin-bottom: 12px; }
+    .stores-search-wrap input { padding-left: 34px; }
+    .stores-search-icon { position: absolute; left: 10px; top: 50%;
+                          transform: translateY(-50%); color: #b2bec3; pointer-events: none; }
+    .stores-select-list { border: 1px solid #dfe6e9; border-radius: 8px;
+                          overflow-y: auto; max-height: 340px; }
+    .store-row { display: flex; align-items: center; gap: 12px;
+                 padding: 10px 14px; border-bottom: 1px solid #f0f2f5;
+                 cursor: pointer; transition: background .1s; }
+    .store-row:last-child { border-bottom: none; }
+    .store-row:hover { background: #f5f8ff; }
+    .store-row.checked { background: #f0f7ff; }
+    .store-row input[type=checkbox] { flex-shrink: 0; }
+    .store-row-info { flex: 1; }
+    .store-row-name { font-size: .88rem; font-weight: 500; }
+    .store-row-url  { font-size: .76rem; color: #b2bec3;
+                      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+                      max-width: 340px; }
+    .stores-empty { padding: 24px; text-align: center; color: #b2bec3;
+                    font-size: .86rem; }
+    .stores-count { font-size: .8rem; color: #636e72; margin-bottom: 8px; }
+    .stores-count strong { color: #0984e3; }
+
+    /* TEST PANEL */
+    .test-box { background: #f5f6fa; border-radius: 8px; padding: 16px;
+                margin-top: 16px; }
+    .test-box h4 { font-size: .9rem; margin-bottom: 12px; }
+    .test-result { background: #2d3436; color: #dfe6e9; border-radius: 6px;
+                   padding: 14px; font-family: monospace; font-size: .8rem;
+                   white-space: pre-wrap; margin-top: 12px; min-height: 60px; }
+    .test-result.success { border-left: 3px solid #00b894; }
+    .test-result.error   { border-left: 3px solid #d63031; }
+
+    /* TOAST */
+    #toast { position: fixed; bottom: 24px; right: 24px; padding: 12px 20px;
+             border-radius: 8px; color: #fff; font-size: .88rem;
+             font-weight: 500; opacity: 0; transition: opacity .3s;
+             z-index: 999; pointer-events: none; }
+    #toast.show { opacity: 1; }
+    #toast.ok  { background: #00b894; }
+    #toast.err { background: #d63031; }
+
+    .loading { color: #636e72; font-style: italic; padding: 20px; text-align: center; }
+
+    /* FILTROS */
+    .filters-bar { display: flex; gap: 10px; margin-bottom: 14px;
+                   align-items: center; flex-wrap: wrap; }
+    .filters-bar input, .filters-bar select { margin: 0; flex: 1; min-width: 160px; }
+    .filters-bar .btn { flex-shrink: 0; }
+
+    /* PAGINADOR */
+    .paginator { display: flex; align-items: center; justify-content: flex-end;
+                 gap: 8px; padding: 12px 16px; font-size: .83rem; color: #636e72; }
+    .paginator button { padding: 5px 12px; border: 1px solid #dfe6e9; border-radius: 6px;
+                        background: #fff; cursor: pointer; font-size: .83rem; color: #2d3436; }
+    .paginator button:hover:not(:disabled) { background: #f0f7ff; border-color: #0984e3; color: #0984e3; }
+    .paginator button:disabled { opacity: .4; cursor: default; }
+
+    /* SCRAPING PANEL */
+    .scrape-card { background: #fff; border-radius: 8px;
+                   box-shadow: 0 1px 4px rgba(0,0,0,.08); padding: 24px; max-width: 660px; }
+    .scrape-card h3 { font-size: 1rem; font-weight: 600; margin-bottom: 20px; }
+    .scrape-row { display: flex; align-items: flex-end; gap: 12px;
+                  margin-bottom: 20px; flex-wrap: wrap; }
+    .scrape-row .form-group { margin: 0; flex: 1; min-width: 160px; }
+    .status-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px;
+                    border-radius: 20px; font-size: .8rem; font-weight: 600; }
+    .status-idle    { background: #f0f2f5; color: #636e72; }
+    .status-running { background: #fff3cd; color: #856404; }
+    .status-ok      { background: #d4efdf; color: #1e8449; }
+    .status-error   { background: #fadbd8; color: #922b21; }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+    @keyframes pulse { 0%,100% { opacity:1 } 50% { opacity:.3 } }
+    .dot.pulse { animation: pulse 1s infinite; }
+    .scrape-meta { font-size: .8rem; color: #636e72; margin-top: 6px; min-height: 18px; }
+    .scrape-log { background: #2d3436; color: #dfe6e9; border-radius: 6px; padding: 14px;
+                  font-family: monospace; font-size: .78rem; white-space: pre-wrap;
+                  margin-top: 16px; max-height: 320px; overflow-y: auto; display: none; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <h1>PricefloCompare — Admin</h1>
+  <a href="/">Ver sitio</a>
+</nav>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('productos')">Productos</div>
+  <div class="tab" onclick="switchTab('tiendas')">Tiendas</div>
+  <div class="tab" onclick="switchTab('scraping')">Scraping</div>
+</div>
+
+<!-- ===== PANEL PRODUCTOS ===== -->
+<div id="panel-productos" class="panel active">
+  <div class="toolbar">
+    <h2>Productos</h2>
+    <button class="btn btn-primary" onclick="openProductModal()">+ Nuevo producto</button>
+  </div>
+  <div class="filters-bar">
+    <input type="text" id="filter-search" placeholder="Buscar por nombre..." oninput="debounceFilter()">
+    <select id="filter-category" onchange="applyFilters()">
+      <option value="">Todas las categorias</option>
+    </select>
+    <select id="filter-store" onchange="applyFilters()">
+      <option value="">Todos los negocios</option>
+    </select>
+    <button class="btn btn-ghost btn-sm" onclick="clearFilters()">Limpiar</button>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th><th>Nombre</th><th>Categoria</th>
+          <th>Intervalo</th><th>Frecuente</th><th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody id="products-body">
+        <tr><td colspan="6" class="loading">Cargando...</td></tr>
+      </tbody>
+    </table>
+    <div class="paginator" id="products-paginator" style="display:none">
+      <span id="products-page-info"></span>
+      <button id="btn-prev" onclick="loadProducts(_currentPage - 1)" disabled>&#8592; Anterior</button>
+      <button id="btn-next" onclick="loadProducts(_currentPage + 1)" disabled>Siguiente &#8594;</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== PANEL TIENDAS ===== -->
+<div id="panel-tiendas" class="panel">
+  <div class="toolbar">
+    <h2>Tiendas</h2>
+    <button class="btn btn-primary" onclick="openStoreModal()">+ Nueva tienda</button>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th><th>Nombre</th><th>Metodo</th>
+          <th>URL</th><th>Estado</th><th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody id="stores-body">
+        <tr><td colspan="6" class="loading">Cargando...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ===== PANEL SCRAPING ===== -->
+<div id="panel-scraping" class="panel">
+  <div class="scrape-card">
+    <h3>Ejecutar job de scraping</h3>
+    <div class="scrape-row">
+      <div class="form-group">
+        <label>Ambiente</label>
+        <select id="scrape-env"><option value="">Cargando...</option></select>
+      </div>
+      <div class="form-group">
+        <label>Producto (opcional — vacío = todos)</label>
+        <input type="text" id="scrape-product" placeholder="Ej: Nevera Samsung 300L">
+      </div>
+      <button class="btn btn-success" id="scrape-btn" onclick="runScrapeJob()">Ejecutar</button>
+      <button class="btn btn-danger" id="scrape-cancel-btn" onclick="cancelScrapeJob()" style="display:none">Cancelar</button>
+    </div>
+    <div>
+      Estado: <span id="scrape-status-badge" class="status-badge status-idle">
+        <span class="dot"></span> Inactivo
+      </span>
+      <div class="scrape-meta" id="scrape-meta"></div>
+    </div>
+    <div id="scrape-log" class="scrape-log"></div>
+  </div>
+</div>
+
+<!-- ===== MODAL PRODUCTO ===== -->
+<div id="modal-product" class="modal-overlay">
+  <div class="modal">
+    <button class="modal-close" onclick="closeProductModal()">&times;</button>
+
+    <!-- VISTA 1: formulario -->
+    <div id="view-product-form">
+      <h3 id="modal-product-title">Nuevo producto</h3>
+      <input type="hidden" id="product-id">
+      <div class="form-group">
+        <label>Nombre</label>
+        <input type="text" id="product-name" placeholder="Ej: Nevera Samsung 300L">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Categoria</label>
+          <input type="text" id="product-category" placeholder="Ej: electrodomesticos">
+        </div>
+        <div class="form-group">
+          <label>Intervalo de actualizacion (horas)</label>
+          <input type="number" id="product-interval" value="12" min="1" max="168">
+        </div>
+      </div>
+      <div class="form-group">
+        <div class="switch-row">
+          <input type="checkbox" id="product-frequent">
+          <label for="product-frequent">Producto frecuente (prioridad alta)</label>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Tiendas donde buscar</label>
+        <div class="chips-area" id="product-chips">
+          <span class="chips-placeholder">Sin tiendas asignadas — se usaran todas las activas</span>
+        </div>
+        <button class="chips-manage" style="margin-top:8px" onclick="showStoresView()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Gestionar tiendas
+        </button>
+      </div>
+      <div class="form-footer">
+        <button class="btn btn-secondary" onclick="closeProductModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="saveProduct()">Guardar</button>
+      </div>
+    </div>
+
+    <!-- VISTA 2: selección de tiendas -->
+    <div id="view-stores-select" style="display:none">
+      <div class="view-header">
+        <button class="btn-back" onclick="showProductForm()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+          Regresar
+        </button>
+        <h3 style="margin:0">Seleccionar tiendas</h3>
+      </div>
+      <div class="stores-search-wrap">
+        <svg class="stores-search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="store-search-input" placeholder="Buscar tienda..." oninput="filterStoresList()">
+      </div>
+      <p class="stores-count" id="stores-select-count"></p>
+      <div class="stores-select-list" id="stores-select-list">
+        <div class="stores-empty">Cargando...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL TIENDA ===== -->
+<div id="modal-store" class="modal-overlay">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modal-store')">&times;</button>
+    <h3 id="modal-store-title">Nueva tienda</h3>
+    <input type="hidden" id="store-id">
+    <div class="form-row">
+      <div class="form-group">
+        <label>Nombre</label>
+        <input type="text" id="store-name" placeholder="Ej: Homecenter">
+      </div>
+      <div class="form-group">
+        <label>Metodo de scraping</label>
+        <select id="store-method">
+          <option value="html">HTML</option>
+          <option value="graphql">GraphQL</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>URL del endpoint</label>
+      <input type="text" id="store-url" placeholder="https://...">
+    </div>
+    <div class="form-group">
+      <div class="switch-row">
+        <input type="checkbox" id="store-active" checked>
+        <label for="store-active">Tienda activa</label>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Config de scraping (JSON)</label>
+      <textarea id="store-config" rows="12" placeholder='{ "params": {}, "title_xpath": "..." }'></textarea>
+      <small style="color:#636e72; font-size:.78rem;">
+        Campos: params, title_xpath, price_xpath, url_xpath, base_product_url, url_suffix, requires_url_variables
+      </small>
+    </div>
+    <div class="test-box">
+      <h4>Probar config</h4>
+      <div class="form-row">
+        <div class="form-group" style="margin:0">
+          <label>Producto de prueba</label>
+          <input type="text" id="test-product" placeholder="Ej: Nevera Samsung 300L">
+        </div>
+        <div class="form-group" style="margin:0">
+          <label>Categoria (opcional)</label>
+          <input type="text" id="test-category" placeholder="Ej: electrodomesticos">
+        </div>
+      </div>
+      <button class="btn btn-success btn-sm" style="margin-top:10px" onclick="testStore()">Ejecutar prueba</button>
+      <div id="test-result" class="test-result" style="display:none"></div>
+    </div>
+    <div class="form-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-store')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveStore()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const API = '';
+let _products = {};
+let _stores = {};
+let _currentPage = 1;
+const _pageSize = 20;
+let _selectedStoreIds = new Set();
+
+// ===== TABS =====
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('panel-' + name).classList.add('active');
+  if (name === 'productos') { loadFilterOptions(); loadProducts(); }
+  if (name === 'tiendas') loadStores();
+  if (name === 'scraping') { loadScrapeEnvironments(); refreshScrapeStatus(); }
+}
+
+// ===== TOAST =====
+function toast(msg, ok = true) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'show ' + (ok ? 'ok' : 'err');
+  setTimeout(() => t.className = '', 2800);
+}
+
+// ===== MODAL GENERICO =====
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+  if (id === 'modal-store') document.getElementById('test-result').style.display = 'none';
+}
+
+// ===== MODAL PRODUCTO =====
+function closeProductModal() {
+  document.getElementById('modal-product').classList.remove('open');
+  showProductForm();
+}
+
+function showProductForm() {
+  document.getElementById('view-product-form').style.display = '';
+  document.getElementById('view-stores-select').style.display = 'none';
+  renderChips();
+}
+
+function showStoresView() {
+  document.getElementById('view-product-form').style.display = 'none';
+  document.getElementById('view-stores-select').style.display = '';
+  document.getElementById('store-search-input').value = '';
+  renderStoresList('');
+}
+
+// ===== CHIPS =====
+function renderChips() {
+  const area = document.getElementById('product-chips');
+  if (_selectedStoreIds.size === 0) {
+    area.innerHTML = '<span class="chips-placeholder">Sin tiendas asignadas — se usaran todas las activas</span>';
+    return;
+  }
+  area.innerHTML = [..._selectedStoreIds].map(id => {
+    const s = _stores[id];
+    const name = s ? s.name : `Tienda ${id}`;
+    return `<span class="chip">${name}<button class="chip-remove" onclick="removeChip(${id})" title="Quitar">&times;</button></span>`;
+  }).join('');
+}
+
+function removeChip(id) {
+  _selectedStoreIds.delete(id);
+  renderChips();
+}
+
+// ===== VISTA TIENDAS =====
+function renderStoresList(query) {
+  const list = document.getElementById('stores-select-list');
+  const countEl = document.getElementById('stores-select-count');
+  const all = Object.values(_stores);
+  const q = query.toLowerCase().trim();
+  const filtered = q ? all.filter(s => s.name.toLowerCase().includes(q)) : all;
+
+  const selected = _selectedStoreIds.size;
+  countEl.innerHTML = selected > 0
+    ? `<strong>${selected}</strong> tienda${selected > 1 ? 's' : ''} seleccionada${selected > 1 ? 's' : ''}`
+    : 'Ninguna tienda seleccionada';
+
+  if (!filtered.length) {
+    list.innerHTML = '<div class="stores-empty">Sin resultados</div>';
+    return;
+  }
+
+  list.innerHTML = filtered.map(s => {
+    const checked = _selectedStoreIds.has(s.id);
+    return `
+      <div class="store-row ${checked ? 'checked' : ''}" onclick="toggleStoreRow(${s.id}, this)">
+        <input type="checkbox" ${checked ? 'checked' : ''} onclick="event.stopPropagation(); toggleStoreRow(${s.id}, this.closest('.store-row'))">
+        <div class="store-row-info">
+          <div class="store-row-name">${s.name}
+            <span class="badge ${s.active ? 'badge-on' : 'badge-off'}" style="font-size:.7rem;margin-left:6px">${s.active ? 'Activa' : 'Inactiva'}</span>
+          </div>
+          <div class="store-row-url">${s.url}</div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function toggleStoreRow(id, row) {
+  if (_selectedStoreIds.has(id)) {
+    _selectedStoreIds.delete(id);
+    row.classList.remove('checked');
+    row.querySelector('input[type=checkbox]').checked = false;
+  } else {
+    _selectedStoreIds.add(id);
+    row.classList.add('checked');
+    row.querySelector('input[type=checkbox]').checked = true;
+  }
+  const selected = _selectedStoreIds.size;
+  document.getElementById('stores-select-count').innerHTML = selected > 0
+    ? `<strong>${selected}</strong> tienda${selected > 1 ? 's' : ''} seleccionada${selected > 1 ? 's' : ''}`
+    : 'Ninguna tienda seleccionada';
+}
+
+function filterStoresList() {
+  renderStoresList(document.getElementById('store-search-input').value);
+}
+
+// ===== FILTROS PRODUCTOS =====
+let _filterTimer = null;
+let _filterOptionsLoaded = false;
+
+function debounceFilter() {
+  clearTimeout(_filterTimer);
+  _filterTimer = setTimeout(applyFilters, 350);
+}
+
+function applyFilters() { loadProducts(1); }
+
+function clearFilters() {
+  document.getElementById('filter-search').value = '';
+  document.getElementById('filter-category').value = '';
+  document.getElementById('filter-store').value = '';
+  loadProducts(1);
+}
+
+async function loadFilterOptions() {
+  if (_filterOptionsLoaded) return;
+  try {
+    const [catsRes, storesRes] = await Promise.all([
+      fetch(API + '/categories'),
+      fetch(API + '/admin/stores')
+    ]);
+    const cats = await catsRes.json();
+    const catSel = document.getElementById('filter-category');
+    cats.forEach(c => {
+      const o = document.createElement('option');
+      o.value = c.category;
+      o.textContent = `${c.category} (${c.count})`;
+      catSel.appendChild(o);
+    });
+    const stores = await storesRes.json();
+    const storeSel = document.getElementById('filter-store');
+    stores.forEach(s => {
+      const o = document.createElement('option');
+      o.value = s.id;
+      o.textContent = s.name;
+      storeSel.appendChild(o);
+      _stores[s.id] = s;
+    });
+    _filterOptionsLoaded = true;  // solo si todo salió bien
+  } catch { /* silencioso — reintentará la próxima vez que se active el tab */ }
+}
+
+// ===== PRODUCTOS =====
+async function loadProducts(page = 1) {
+  _currentPage = page;
+  const search = document.getElementById('filter-search')?.value.trim() || '';
+  const category = document.getElementById('filter-category')?.value || '';
+  const storeId = document.getElementById('filter-store')?.value || '';
+
+  const params = new URLSearchParams({ page, page_size: _pageSize });
+  if (search) params.set('search', search);
+  if (category) params.set('category', category);
+  if (storeId) params.set('store_id', storeId);
+
+  const tbody = document.getElementById('products-body');
+  tbody.innerHTML = '<tr><td colspan="6" class="loading">Cargando...</td></tr>';
+  const res = await fetch(API + `/admin/products?${params}`);
+  const data = await res.json();
+  const items = data.items || [];
+  if (!items.length) {
+    tbody.innerHTML = '<tr><td colspan="6" class="loading">Sin productos</td></tr>';
+    document.getElementById('products-paginator').style.display = 'none';
+    return;
+  }
+  items.forEach(p => _products[p.id] = p);
+  tbody.innerHTML = items.map(p => `
+    <tr>
+      <td>${p.id}</td>
+      <td><strong>${p.name}</strong></td>
+      <td>${p.category || '<em style="color:#b2bec3">—</em>'}</td>
+      <td>${p.update_interval_hours}h</td>
+      <td><span class="badge ${p.is_frequent ? 'badge-on' : 'badge-off'}">${p.is_frequent ? 'Si' : 'No'}</span></td>
+      <td><div class="actions">
+        <button class="btn btn-secondary btn-sm" onclick="editProduct(${p.id})">Editar</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteProduct(${p.id})">Eliminar</button>
+      </div></td>
+    </tr>`).join('');
+
+  const paginator = document.getElementById('products-paginator');
+  paginator.style.display = data.total_pages > 1 ? 'flex' : 'none';
+  document.getElementById('products-page-info').textContent =
+    `Página ${data.page} de ${data.total_pages} (${data.total} productos)`;
+  document.getElementById('btn-prev').disabled = data.page <= 1;
+  document.getElementById('btn-next').disabled = data.page >= data.total_pages;
+}
+
+function editProduct(id) { openProductModal(_products[id]); }
+
+async function openProductModal(p = null) {
+  document.getElementById('modal-product-title').textContent = p ? 'Editar producto' : 'Nuevo producto';
+  document.getElementById('product-id').value = p ? p.id : '';
+  document.getElementById('product-name').value = p ? p.name : '';
+  document.getElementById('product-category').value = p ? (p.category || '') : '';
+  document.getElementById('product-interval').value = p ? p.update_interval_hours : 12;
+  document.getElementById('product-frequent').checked = p ? !!p.is_frequent : false;
+
+  _selectedStoreIds = new Set();
+  showProductForm();
+  openModal('modal-product');
+
+  try {
+    const [storesRes, assignedRes] = await Promise.all([
+      fetch(API + '/admin/stores'),
+      p ? fetch(API + `/admin/products/${p.id}/stores`) : Promise.resolve(null)
+    ]);
+    const allStores = await storesRes.json();
+    allStores.forEach(s => _stores[s.id] = s);
+
+    if (assignedRes) {
+      const { store_ids } = await assignedRes.json();
+      _selectedStoreIds = new Set(store_ids);
+    }
+    renderChips();
+  } catch {
+    toast('Error cargando tiendas', false);
+  }
+}
+
+async function saveProduct() {
+  const id = document.getElementById('product-id').value;
+  const body = {
+    name: document.getElementById('product-name').value.trim(),
+    category: document.getElementById('product-category').value.trim() || null,
+    update_interval_hours: parseInt(document.getElementById('product-interval').value),
+    is_frequent: document.getElementById('product-frequent').checked
+  };
+  if (!body.name) { toast('El nombre es obligatorio', false); return; }
+
+  const url = id ? `/admin/products/${id}` : '/admin/products';
+  const method = id ? 'PUT' : 'POST';
+  const res = await fetch(API + url, { method, headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+  if (!res.ok) {
+    const err = await res.json();
+    toast(err.detail || 'Error guardando', false);
+    return;
+  }
+  const saved = await res.json();
+  const productId = id || saved.id;
+
+  await fetch(API + `/admin/products/${productId}/stores`, {
+    method: 'PUT',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ store_ids: [..._selectedStoreIds] })
+  });
+
+  closeProductModal();
+  toast(id ? 'Producto actualizado' : 'Producto creado');
+  loadProducts();
+}
+
+async function deleteProduct(id) {
+  const name = _products[id]?.name || id;
+  if (!confirm(`Eliminar "${name}" y todos sus precios guardados?`)) return;
+  const res = await fetch(API + `/admin/products/${id}`, { method: 'DELETE' });
+  if (res.ok) { toast('Producto eliminado'); loadProducts(); }
+  else toast('Error eliminando', false);
+}
+
+// ===== TIENDAS =====
+async function loadStores() {
+  const tbody = document.getElementById('stores-body');
+  tbody.innerHTML = '<tr><td colspan="6" class="loading">Cargando...</td></tr>';
+  const res = await fetch(API + '/admin/stores');
+  const data = await res.json();
+  if (!data.length) {
+    tbody.innerHTML = '<tr><td colspan="6" class="loading">Sin tiendas</td></tr>';
+    return;
+  }
+  data.forEach(s => _stores[s.id] = s);
+  tbody.innerHTML = data.map(s => `
+    <tr>
+      <td>${s.id}</td>
+      <td><strong>${s.name}</strong></td>
+      <td><span class="badge badge-${s.fetch_method}">${s.fetch_method.toUpperCase()}</span></td>
+      <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.8rem;color:#636e72">${s.url}</td>
+      <td><span class="badge ${s.active ? 'badge-on' : 'badge-off'}">${s.active ? 'Activa' : 'Inactiva'}</span></td>
+      <td><div class="actions">
+        <button class="btn btn-secondary btn-sm" onclick="editStore(${s.id})">Editar</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteStore(${s.id})">Eliminar</button>
+      </div></td>
+    </tr>`).join('');
+}
+
+function editStore(id) { openStoreModal(_stores[id]); }
+
+function openStoreModal(s = null) {
+  document.getElementById('modal-store-title').textContent = s ? 'Editar tienda' : 'Nueva tienda';
+  document.getElementById('store-id').value = s ? s.id : '';
+  document.getElementById('store-name').value = s ? s.name : '';
+  document.getElementById('store-method').value = s ? s.fetch_method : 'html';
+  document.getElementById('store-url').value = s ? s.url : '';
+  document.getElementById('store-active').checked = s ? !!s.active : true;
+  document.getElementById('store-config').value = s
+    ? JSON.stringify(s.config || {}, null, 2)
+    : JSON.stringify({ params: {}, title_xpath: "", price_xpath: "", url_xpath: "", base_product_url: "" }, null, 2);
+  document.getElementById('test-result').style.display = 'none';
+  openModal('modal-store');
+}
+
+async function saveStore() {
+  const id = document.getElementById('store-id').value;
+  let config;
+  try {
+    config = JSON.parse(document.getElementById('store-config').value);
+  } catch {
+    toast('El JSON de config no es valido', false); return;
+  }
+  const body = {
+    name: document.getElementById('store-name').value.trim(),
+    url: document.getElementById('store-url').value.trim(),
+    fetch_method: document.getElementById('store-method').value,
+    active: document.getElementById('store-active').checked,
+    config
+  };
+  if (!body.name || !body.url) { toast('Nombre y URL son obligatorios', false); return; }
+  const url = id ? `/admin/stores/${id}` : '/admin/stores';
+  const method = id ? 'PUT' : 'POST';
+  const res = await fetch(API + url, { method, headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+  if (res.ok) {
+    closeModal('modal-store');
+    toast(id ? 'Tienda actualizada' : 'Tienda creada');
+    loadStores();
+  } else {
+    const err = await res.json();
+    toast(err.detail || 'Error guardando', false);
+  }
+}
+
+async function deleteStore(id) {
+  const name = _stores[id]?.name || id;
+  if (!confirm(`Eliminar la tienda "${name}"?`)) return;
+  const res = await fetch(API + `/admin/stores/${id}`, { method: 'DELETE' });
+  if (res.ok) { toast('Tienda eliminada'); loadStores(); }
+  else toast('Error eliminando', false);
+}
+
+async function testStore() {
+  const id = document.getElementById('store-id').value;
+  const product = document.getElementById('test-product').value.trim();
+  const category = document.getElementById('test-category').value.trim();
+  const resultEl = document.getElementById('test-result');
+  if (!product) { toast('Escribe un producto para probar', false); return; }
+  if (!id) { toast('Guarda la tienda primero para poder probarla', false); return; }
+  resultEl.style.display = 'block';
+  resultEl.className = 'test-result';
+  resultEl.textContent = 'Ejecutando...';
+  try {
+    const res = await fetch(API + `/admin/stores/${id}/test`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ product_name: product, product_category: category || null })
+    });
+    const data = await res.json();
+    if (data.success && data.result) {
+      resultEl.className = 'test-result success';
+      resultEl.textContent = JSON.stringify(data.result, null, 2);
+    } else {
+      resultEl.className = 'test-result error';
+      resultEl.textContent = data.message || 'Sin resultados';
+    }
+  } catch (e) {
+    resultEl.className = 'test-result error';
+    resultEl.textContent = 'Error: ' + e.message;
+  }
+}
+
+// ===== SCRAPING =====
+let _scrapePoller = null;
+
+async function loadScrapeEnvironments() {
+  const sel = document.getElementById('scrape-env');
+  try {
+    const res = await fetch(API + '/api/scrape/environments');
+    const envs = await res.json();
+    if (!envs.length) {
+      sel.innerHTML = '<option value="">Sin ambientes configurados en .env</option>';
+      return;
+    }
+    sel.innerHTML = envs.map(e => `<option value="${e.key}">${e.label}</option>`).join('');
+  } catch {
+    sel.innerHTML = '<option value="">Error cargando ambientes</option>';
+  }
+}
+
+async function cancelScrapeJob() {
+  try {
+    const res = await fetch(API + '/api/scrape/run', { method: 'DELETE' });
+    const data = await res.json();
+    if (res.ok) { toast('Job cancelado'); refreshScrapeStatus(); }
+    else toast(data.detail || 'Error cancelando', false);
+  } catch (e) { toast('Error: ' + e.message, false); }
+}
+
+async function runScrapeJob() {
+  const env = document.getElementById('scrape-env').value;
+  const product = document.getElementById('scrape-product').value.trim();
+  if (!env) { toast('Selecciona un ambiente', false); return; }
+
+  document.getElementById('scrape-btn').disabled = true;
+  try {
+    const res = await fetch(API + '/api/scrape/run', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ env, product: product || null })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      toast(data.detail || 'Error iniciando job', false);
+      document.getElementById('scrape-btn').disabled = false;
+      return;
+    }
+    toast('Job iniciado');
+    startScrapePolling();
+  } catch (e) {
+    toast('Error: ' + e.message, false);
+    document.getElementById('scrape-btn').disabled = false;
+  }
+}
+
+function startScrapePolling() {
+  if (_scrapePoller) clearInterval(_scrapePoller);
+  _scrapePoller = setInterval(refreshScrapeStatus, 3000);
+  refreshScrapeStatus();
+}
+
+async function refreshScrapeStatus() {
+  try {
+    const res = await fetch(API + '/api/scrape/status');
+    const data = await res.json();
+    const badge = document.getElementById('scrape-status-badge');
+    if (!badge) return;
+    const meta = document.getElementById('scrape-meta');
+    const log = document.getElementById('scrape-log');
+    const btn = document.getElementById('scrape-btn');
+
+    const cancelBtn = document.getElementById('scrape-cancel-btn');
+    if (data.running) {
+      badge.className = 'status-badge status-running';
+      badge.innerHTML = '<span class="dot pulse"></span> Corriendo...';
+      meta.textContent = `Ambiente: ${data.env_key}${data.product ? ' — Producto: ' + data.product : ' — Todos los productos'} — Iniciado: ${fmtDate(data.started_at)}`;
+      btn.disabled = true;
+      if (cancelBtn) cancelBtn.style.display = '';
+      if (!_scrapePoller) startScrapePolling();
+      return;
+    }
+
+    btn.disabled = false;
+    if (cancelBtn) cancelBtn.style.display = 'none';
+    if (_scrapePoller) { clearInterval(_scrapePoller); _scrapePoller = null; }
+
+    if (!data.last_result) {
+      badge.className = 'status-badge status-idle';
+      badge.innerHTML = '<span class="dot"></span> Inactivo';
+      meta.textContent = '';
+      log.style.display = 'none';
+      return;
+    }
+
+    const r = data.last_result;
+    const ok = r.exit_code === 0;
+    badge.className = 'status-badge ' + (ok ? 'status-ok' : 'status-error');
+    const parts = [];
+    if (r.success !== null) parts.push(`${r.success} exitosos`);
+    if (r.failed !== null) parts.push(`${r.failed} fallidos`);
+    badge.innerHTML = `<span class="dot"></span> ${parts.length ? parts.join(', ') : (ok ? 'Completado' : 'Error')}`;
+    meta.textContent = `Último: ${fmtDate(data.last_run)} — Ambiente: ${data.env_key || '—'}`;
+    if (r.output) {
+      log.style.display = 'block';
+      log.textContent = r.output;
+      log.scrollTop = log.scrollHeight;
+    }
+  } catch { /* silencioso */ }
+}
+
+function fmtDate(iso) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleString('es-CO', { dateStyle: 'short', timeStyle: 'short' });
+}
+
+// ===== INIT =====
+loadFilterOptions();
+loadProducts();
+refreshScrapeStatus();
+</script>
+</body>
+</html>
